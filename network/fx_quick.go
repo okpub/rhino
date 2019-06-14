@@ -57,9 +57,9 @@ func StartTcpServer(addr string) (cancel CloseFunc, err error) {
 				for {
 					conn, err := ln.Accept()
 					if err == nil {
-						go func(fd net.Conn) {
-							defer fd.Close()
-							handle(fd).Run()
+						go func(link net.Conn) {
+							defer link.Close()
+							handle(link).Run()
 						}(conn)
 					} else {
 						if temp, ok := err.(net.Error); ok && temp.Temporary() {

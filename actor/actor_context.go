@@ -15,8 +15,9 @@ func newActorContext(parent SpawnerContext, opts *Options) actorContext {
 
 //class context (context相当于一个快递公司)
 type actorContext struct {
-	PIDGroup
 	UntypeContext
+	//childs
+	PIDGroup
 	//New init
 	opts *Options
 	//The real context
@@ -46,9 +47,10 @@ func (this *actorContext) PreStart() {
 }
 
 func (this *actorContext) PostStop() {
+	//关闭自身进程
 	this.Stop(this.self)
-	this.DispatchMessage(stoped)
-	//this.Bubble(otherStop)
+	//调度自己移除
+	this.DispatchMessage(stopped)
 }
 
 func (this *actorContext) ThrowFailure(err error, body interface{}) {

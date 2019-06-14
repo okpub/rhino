@@ -54,7 +54,7 @@ func (*Restart) String() string { return "restart" }
 
 var (
 	started = &Started{}
-	stoped  = &Stopped{}
+	stopped = &Stopped{}
 	restart = &Restart{}
 )
 

@@ -7,12 +7,18 @@ import (
 	"github.com/okpub/rhino/process"
 )
 
+type testBroker struct {
+	process.UntypeBroker
+}
+
+func (this *testBroker) p() {
+	fmt.Println(1)
+}
+
 //test
 func init() {
 	mb := New(OptionPendingNum(100))
-	mb.OnRegister(process.NewDefaultDispatcher(0), process.DoWithFunc(func(v interface{}) {
-		fmt.Println("派送消息:", v)
-	}))
+	mb.OnRegister(process.NewDefaultDispatcher(0), &testBroker{})
 	mb.Start()
 	mb.Post("我是谁")
 	mb.Post("我是谁2")

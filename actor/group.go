@@ -131,5 +131,5 @@ func Typeof(p interface{}) string {
 	if p == nil {
 		return "<nil>"
 	}
-	return reflect.TypeOf(p).Kind().String()
+	return reflect.TypeOf(p).String()
 }

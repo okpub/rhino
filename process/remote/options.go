@@ -35,10 +35,6 @@ func (this *Options) Send(b []byte) error {
 	return this.Write(b)
 }
 
-//func (this *Options) copy() Options {
-//	return *this
-//}
-
 //socket选项
 func OptionWithStream(conn Stream) Option {
 	return func(p *Options) {

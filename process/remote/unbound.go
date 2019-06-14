@@ -15,7 +15,11 @@ type Producer func() SocketProcess
 
 //new
 func New(opts ...Option) SocketProcess {
-	this := &mySocket{}
+	this := &mySocket{
+		opts: Options{
+			SendTimeout: defaultSendTimeout, // default send timeout
+		},
+	}
 	this.init(opts...)
 	return this
 }
@@ -23,11 +27,17 @@ func New(opts ...Option) SocketProcess {
 func NewKeepActive(opts ...Option) SocketProcess {
 	this := &mySocket{
 		opts: Options{
-			ReadTimeout: defaultReadTimeout,
-			SendTimeout: defaultSendTimeout,
-			PingTimeout: defaultPingTimeout,
+			ReadTimeout: defaultReadTimeout, // default read timeout
+			SendTimeout: defaultSendTimeout, // default send timeout
+			PingTimeout: defaultPingTimeout, // default heartbeat
 		},
 	}
+	this.init(opts...)
+	return this
+}
+
+func NewBlocking(opts ...Option) SocketProcess {
+	this := &mySocket{}
 	this.init(opts...)
 	return this
 }
@@ -35,6 +45,6 @@ func NewKeepActive(opts ...Option) SocketProcess {
 //Producer
 func Unbounded(opts ...Option) Producer {
 	return func() SocketProcess {
-		return New(opts...)
+		return NewBlocking(opts...)
 	}
 }

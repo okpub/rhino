@@ -1,6 +1,8 @@
 package channel
 
 import (
+	"fmt"
+
 	"github.com/okpub/rhino/process"
 )
 
@@ -13,6 +15,15 @@ type myBuffer struct {
 
 func (this *myBuffer) init(args ...Option) {
 	this.opts.Fill(args...)
+	//uninitialized
+	if pendingNum := this.opts.PendingNum; this.opts.Buffer == nil {
+		if pendingNum < 5 {
+			fmt.Printf("Warning: The email is too small, easy to jam. [size=%d] \n", pendingNum)
+		} else if pendingNum > 1000 {
+			fmt.Printf("Info: The email is too much. [size=%d] \n", pendingNum)
+		}
+		this.opts.Buffer = make(chan interface{}, pendingNum)
+	}
 }
 
 //process

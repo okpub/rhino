@@ -9,8 +9,8 @@ func Stage() ActorSystem {
 
 //class system(不选择copy那么不能作为context)
 type actorSystem struct {
-	PIDGroup
 	UntypeContext
+	PIDGroup
 }
 
 func (this *actorSystem) System() ActorSystem { return this }

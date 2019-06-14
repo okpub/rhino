@@ -5,10 +5,11 @@ package channel
  */
 type Options struct {
 	NonBlocking bool             //非阻塞模式(默认阻塞)
+	PendingNum  int              //通道大小(需要默认值)
 	Buffer      chan interface{} //消息通道
 }
 
-//填充
+//reset buffer
 func (this *Options) Fill(args ...Option) {
 	for _, o := range args {
 		o(this)
@@ -34,20 +35,26 @@ func (this *Options) Post(v interface{}) (err error) {
 }
 
 //选项
-func OptionPendingNum(peningNum int) Option {
+func OptionPendingNum(pendingNum int) Option {
 	return func(p *Options) {
-		p.Buffer = make(chan interface{}, peningNum)
+		p.PendingNum = pendingNum
 	}
 }
 
-func OptionBlocking(blocking bool) Option {
+func OptionBuffer(buffer chan interface{}) Option {
 	return func(p *Options) {
-		p.NonBlocking = !blocking
+		p.Buffer = buffer
 	}
 }
 
-func OptionWithFunc(fn func() chan interface{}) Option {
+func OptionBlocking() Option { //阻塞模式
 	return func(p *Options) {
-		p.Buffer = fn()
+		p.NonBlocking = false
+	}
+}
+
+func OptionNonBlocking() Option { //非阻塞模式
+	return func(p *Options) {
+		p.NonBlocking = true
 	}
 }

@@ -2,7 +2,6 @@ package actor
 
 //actor context
 type ActorContext interface {
-	//core
 	Context
 	//base
 	basePart

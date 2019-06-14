@@ -11,6 +11,15 @@ type SenderMiddleware func(next SenderFunc) SenderFunc
 type ContextDecorator func(next ContextDecoratorFunc) ContextDecoratorFunc
 type SpawnMiddleware func(next SpawnFunc) SpawnFunc
 
+//process interface
+type ProcessProducer func() ActorProcess
+
+type ActorProcess interface {
+	process.Process
+	SendMessage(ActorRef, interface{}) error
+	Stop(ActorRef) error
+}
+
 // Default values
 var (
 	defaultDispatcher       = process.NewDefaultDispatcher(0)
@@ -21,6 +30,7 @@ var (
 		//new process
 		self := NewBroker(&ctx, opts.NewProcess())
 		ctx.self = self
+		//addchild
 		Join(parent, self)
 		//init and start
 		self.OnRegister(opts.GetDispatcher(), &ctx)
@@ -28,14 +38,6 @@ var (
 		return self
 	}
 )
-
-func NewOptions(args ...Option) (opts *Options) {
-	opts = &Options{}
-	for _, o := range args {
-		o(opts)
-	}
-	return
-}
 
 //option
 type Option func(*Options)
@@ -54,7 +56,7 @@ type Options struct {
 	contextDecorator        []ContextDecorator
 	contextDecoratorChain   ContextDecoratorFunc
 	//spawner
-	spawner              SpawnFunc         //no used
+	spawner              SpawnFunc
 	spawnMiddleware      []SpawnMiddleware //no used
 	spawnMiddlewareChain SpawnFunc         //no used
 }
@@ -84,21 +86,26 @@ func (this *Options) ContextWrapper(ctx ActorContext) ActorContext {
 func (this *Options) GetSpawner() (spawner SpawnFunc) {
 	if spawner = this.spawnMiddlewareChain; spawner == nil {
 		if spawner = this.spawner; spawner == nil {
-			//默认 spawner = def
 			spawner = defaultSpawner
 		}
 	}
 	return
 }
 
-//这个时候得到的是新对象
-func (this Options) Filler(args ...Option) *Options {
+func (this *Options) Fill(args ...Option) {
+	for _, o := range args {
+		o(this)
+	}
+}
+
+func (this Options) Copy(args ...Option) *Options {
 	for _, o := range args {
 		o(&this)
 	}
 	return &this
 }
 
+//private
 func (this *Options) spawn(parent SpawnerContext) ActorRef {
 	return this.GetSpawner()(parent, this)
 }

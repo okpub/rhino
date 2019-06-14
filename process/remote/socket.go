@@ -60,7 +60,7 @@ func (this *mySocket) run() {
 	this.opts.SetReadTimeout(this.opts.ReadTimeout)
 	var pong bool
 	for {
-		body, err = this.opts.Read()
+		body, err = this.Read()
 		//ping timeout
 		this.opts.SetReadTimeout(this.opts.PingTimeout)
 		if err == nil {
@@ -94,6 +94,10 @@ func (this *mySocket) wait() {
 		fmt.Println("wait closing :", this.opts.DeathDelay)
 		time.Sleep(this.opts.DeathDelay)
 	}
+}
+
+func (this *mySocket) Read() ([]byte, error) {
+	return this.opts.Read()
 }
 
 //If set will write timeout (default send)

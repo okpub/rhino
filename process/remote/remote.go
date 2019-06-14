@@ -11,6 +11,7 @@ type Option func(*Options)
 type SocketProcess interface {
 	process.Process
 	Options() Options
+	Read() ([]byte, error)
 	Send([]byte) error
 }
 

@@ -3,30 +3,11 @@ package actor
 import (
 	"fmt"
 
-	"github.com/okpub/rhino/process"
 	"github.com/okpub/rhino/process/channel"
 	"github.com/okpub/rhino/process/remote"
 )
 
-type ProcessProducer func() ActorProcess
-
-type ActorProcess interface {
-	process.Process
-	SendMessage(ActorRef, interface{}) error
-	Stop(ActorRef) error
-}
-
-func NewLocalProcess(opts ...channel.Option) ActorProcess {
-	return &LocalProcess{MessageQueue: channel.New(opts...)}
-}
-
-func LocalUnbounded(opts ...channel.Option) ProcessProducer {
-	return func() ActorProcess {
-		return NewLocalProcess(opts...)
-	}
-}
-
-//本地
+//本地ref
 type LocalProcess struct {
 	channel.MessageQueue
 }
@@ -39,29 +20,19 @@ func (this *LocalProcess) Stop(sender ActorRef) error {
 	return this.Close()
 }
 
-//远程
-func NewRemoteProcess(opts ...remote.Option) ActorProcess {
-	return &RemoteProcess{SocketProcess: remote.New(opts...)}
-}
-
-func RemoteUnbounded(opts ...remote.Option) ProcessProducer {
-	return func() ActorProcess {
-		return &RemoteProcess{SocketProcess: remote.New(opts...)}
-	}
-}
-
+//远程ref
 type RemoteProcess struct {
 	remote.SocketProcess
 }
 
 func (this *RemoteProcess) SendMessage(sender ActorRef, data interface{}) error {
-	switch p := data.(type) {
+	switch b := data.(type) {
 	case []byte:
-		return this.Send(p)
+		return this.Send(b)
 	case MessageEnvelope:
-		return this.SendMessage(sender, p.Any())
+		return this.SendMessage(sender, b.Any())
 	default:
-		panic(fmt.Errorf("remote tell type Unable to resolve %+v", data))
+		panic(fmt.Errorf("remote tell type unable to resolve %+v", data))
 	}
 }
 

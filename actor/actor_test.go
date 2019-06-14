@@ -51,7 +51,6 @@ import (
 
 	"github.com/okpub/rhino/core"
 	"github.com/okpub/rhino/network"
-	"github.com/okpub/rhino/process"
 	"github.com/okpub/rhino/process/remote"
 )
 
@@ -81,7 +80,7 @@ func (this *GateActor) NextID() int64 {
 
 func (this *GateActor) PreStart(ctx ActorContext) {
 	this.refs = make(map[int64]ActorRef)
-	this.start_server(ctx)
+	this.start_server()
 }
 
 func (this *GateActor) Receive(ctx ActorContext) {
@@ -95,7 +94,7 @@ func (this *GateActor) Receive(ctx ActorContext) {
 	case *network.SocketPacket:
 		fmt.Println("网关接收:", o)
 	default:
-		fmt.Println("not handle:", Typeof(ctx.Any()), ctx.Any())
+		fmt.Println("not handle:", ctx.Any())
 	}
 }
 
@@ -128,9 +127,9 @@ func (this *GateActor) tellUser(ctx ActorContext, id int64, body []byte) (err er
 	return
 }
 
-func (this *GateActor) start_server(ctx ActorContext) {
+func (this *GateActor) start_server() {
 	network.OnHandler(func(conn network.Link) network.Runnable {
-		ctx.ActorOf(ActorWithStream(func() Actor {
+		Stage().ActorOf(WithStream(func() Actor {
 			return &testAgent{}
 		}, network.WithLink(conn)))
 		return network.EmptyRunner(0)
@@ -147,7 +146,7 @@ type testAgent struct {
 }
 
 func (this *testAgent) init(ctx ActorContext) {
-	this.sendRef = ctx.ActorOf(ActorWithFunc(func(child ActorContext) {
+	this.sendRef = ctx.ActorOf(WithFunc(func(child ActorContext) {
 		switch body := child.Any().(type) {
 		case []byte:
 			child.Respond(body)
@@ -157,7 +156,7 @@ func (this *testAgent) init(ctx ActorContext) {
 		case *Started:
 			//todo
 		default:
-			fmt.Println("can't handle:", Typeof(body))
+			fmt.Println("can't handle:", body)
 		}
 	}))
 	//注册网关自己的发送通道
@@ -192,7 +191,7 @@ func init() {
 			client remote.SocketProcess
 			addr   = "localhost:8088"
 		)
-		cliRef := Stage().ActorOf(ActorWithFunc(func(ctx ActorContext) {
+		cliRef := Stage().ActorOf(WithFunc(func(ctx ActorContext) {
 			switch b := ctx.Any().(type) {
 			case *Started:
 			case *CloseObj:
@@ -202,7 +201,7 @@ func init() {
 				client = remote.New(remote.OptionWithFunc(func() remote.Stream {
 					return network.WithErr(network.DialScan("", addr))
 				}))
-				client.OnRegister(defaultDispatcher, process.DoWithFunc(func(data interface{}) {
+				client.OnRegister(defaultDispatcher, FuncBroker(func(data interface{}) {
 					switch body := data.(type) {
 					case []byte:
 						fmt.Println("body", network.ReadBegin(body))
@@ -221,8 +220,8 @@ func init() {
 	time.Sleep(time.Second * 2)
 	Stage().Shutdown()
 
-	Stage().ActorOf(ActorWithFunc(func(ctx ActorContext) {
-		fmt.Println("what", ctx.Err())
+	Stage().ActorOf(WithFunc(func(ctx ActorContext) {
+		fmt.Println("what")
 	}))
 	time.Sleep(1000)
 }
