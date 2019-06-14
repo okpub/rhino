@@ -3,6 +3,8 @@ package bit
 import (
 	"fmt"
 	"sync"
+
+	"github.com/okpub/rhino/core"
 	//	"reflect"
 )
 

@@ -3,9 +3,9 @@ package actor
 import (
 	"fmt"
 
-	"github.com/rhino/process"
-	"github.com/rhino/process/channel"
-	"github.com/rhino/process/remote"
+	"github.com/okpub/rhino/process"
+	"github.com/okpub/rhino/process/channel"
+	"github.com/okpub/rhino/process/remote"
 )
 
 type ProcessProducer func() ActorProcess

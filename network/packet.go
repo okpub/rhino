@@ -3,7 +3,7 @@ package network
 import (
 	"fmt"
 
-	"github.com/rhino/bit"
+	"github.com/okpub/rhino/bit"
 )
 
 /*

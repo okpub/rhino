@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-sloth/vodka/context"
+	"context"
 )
 
 //同步消息机制
@@ -134,16 +134,16 @@ func (this *eventChannel) loadAndRemove(id int64) (conn Conn, ok bool) {
  */
 func With(ctx context.Context) Conn {
 	this := &sync_conn{
-		PIDSignal: context.WithSignal(ctx),
-		id:        incr(),
-		blockCh:   make(chan interface{}),
-		errorCh:   make(chan error),
+		Context: ctx,
+		id:      incr(),
+		blockCh: make(chan interface{}),
+		errorCh: make(chan error),
 	}
 	return this
 }
 
 type sync_conn struct {
-	*context.PIDSignal
+	context.Context
 	id      int64
 	blockCh chan interface{}
 	errorCh chan error
@@ -232,5 +232,5 @@ func (this *sync_conn) Rollback() (err error) {
 * close sign
  */
 func (this *sync_conn) Close() error {
-	return this.RemoveSelf(true, context.Canceled)
+	return nil
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rhino/network"
-	"github.com/rhino/process"
+	"github.com/okpub/rhino/network"
+	"github.com/okpub/rhino/process"
 )
 
 //server

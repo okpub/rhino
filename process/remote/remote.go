@@ -3,7 +3,7 @@ package remote
 import (
 	"time"
 
-	"github.com/rhino/process"
+	"github.com/okpub/rhino/process"
 )
 
 type Option func(*Options)

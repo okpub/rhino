@@ -1,7 +1,7 @@
 package channel
 
 import (
-	"github.com/rhino/process"
+	"github.com/okpub/rhino/process"
 )
 
 //class mailbox(假邮箱，关闭后不能重复使用)

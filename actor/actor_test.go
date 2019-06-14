@@ -49,10 +49,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/rhino/core"
-	"github.com/rhino/network"
-	"github.com/rhino/process"
-	"github.com/rhino/process/remote"
+	"github.com/okpub/rhino/core"
+	"github.com/okpub/rhino/network"
+	"github.com/okpub/rhino/process"
+	"github.com/okpub/rhino/process/remote"
 )
 
 type BeginObj struct {

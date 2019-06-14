@@ -1,7 +1,7 @@
 package actor
 
 import (
-	"github.com/rhino/process"
+	"github.com/okpub/rhino/process"
 )
 
 type SpawnFunc func(SpawnerContext, *Options) ActorRef
