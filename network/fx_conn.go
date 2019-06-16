@@ -34,15 +34,11 @@ func WithLink(conn Link) Conn {
 	return With(conn.(net.Conn))
 }
 
-func WithEmpty(err error) Conn {
-	return &emptyConn{err: err}
-}
-
 func WithErr(conn net.Conn, err error) Conn {
 	if err == nil {
 		return With(conn)
 	}
-	return WithEmpty(err)
+	return &emptyConn{error: err}
 }
 
 /*协议部分=默认参数*/
@@ -59,7 +55,7 @@ type durConn struct {
 }
 
 func (this *durConn) Read() (body []byte, err error) {
-	//read paylen
+	//read paylen (multithreading unsafe)
 	var lenData [NET_Paylen]byte
 	_, err = io.ReadFull(this.rbuf, lenData[0:])
 	if err == nil {
@@ -122,16 +118,16 @@ func (this *durConn) LocalAddress() string {
 
 //die conn
 type emptyConn struct {
-	err error
+	error
 }
 
 //base
-func (this *emptyConn) Read() ([]byte, error) { return nil, this.err }
-func (this *emptyConn) Write(_ []byte) error  { return this.err }
-func (this *emptyConn) Close() error          { return this.err }
+func (this *emptyConn) Read() ([]byte, error) { return nil, this.error }
+func (this *emptyConn) Write(_ []byte) error  { return this.error }
+func (this *emptyConn) Close() error          { return this.error }
 
 //other
-func (this *emptyConn) Address() string                      { return "addr=undefined" }
-func (this *emptyConn) LocalAddress() string                 { return "local addr=undefined" }
-func (this *emptyConn) SetReadTimeout(_ time.Duration) error { return this.err }
-func (this *emptyConn) SetSendTimeout(_ time.Duration) error { return this.err }
+func (this *emptyConn) Address() string                      { return "undefined" }
+func (this *emptyConn) LocalAddress() string                 { return "undefined" }
+func (this *emptyConn) SetReadTimeout(_ time.Duration) error { return this.error }
+func (this *emptyConn) SetSendTimeout(_ time.Duration) error { return this.error }

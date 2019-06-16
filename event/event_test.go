@@ -5,26 +5,13 @@ import (
 	"time"
 )
 
-type TestEvent int
-
-func (n TestEvent) Type() int {
-	return int(n)
-}
-
-func (n TestEvent) Body() interface{} { return nil }
-
 func init() {
-	cb := New()
+	event := make(OberSet)
 
-	cb.OnFunc(2, func() {
-		fmt.Println("深恶;:")
-	})
-
-	cb.OnFunc(3, func() {
-		fmt.Println("我是谁")
-	})
-	//cb.Off(3)
-	cb.DispatchEvent(TestEvent(3))
-
+	event.Subscribe(func(data Publication) {
+		fmt.Println(data.Message())
+	}, 1)
+	event.Publish(1)
+	fmt.Println("123")
 	time.Sleep(time.Second)
 }

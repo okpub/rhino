@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/okpub/rhino/errors"
 	"github.com/okpub/rhino/process"
 )
 
@@ -16,7 +17,7 @@ type mySocket struct {
 }
 
 func (this *mySocket) init(args ...Option) {
-	this.opts.Fill(args...)
+	this.opts.Filler(args...)
 }
 
 //procsess
@@ -42,9 +43,7 @@ func (this *mySocket) run() {
 	defer func() {
 		if debug {
 			if err == nil {
-				err = process.CatchError(recover())
-			} else {
-				process.CatchError(recover()) //Ignore other error
+				err = errors.Catch(recover())
 			}
 		}
 		if err != nil {
@@ -77,7 +76,7 @@ func (this *mySocket) run() {
 					this.opts.SetReadTimeout(this.opts.ReadTimeout)
 					//heartbeat notice
 					this.DispatchMessage(err)
-					this.OnFree()
+					//this.OnFree()
 				} else {
 					this.Close() //close by timeout
 					break

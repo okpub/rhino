@@ -14,6 +14,7 @@ type Test struct {
 }
 
 func init() {
+	//SysErr()
 	var i int
 	var z Test
 	fmt.Println(Sizeof(i))
@@ -28,8 +29,8 @@ func BenchmarkTestZero(b *testing.B) {
 }
 
 func init2() {
-	cls := make(ObjectModel)
+	cls := make(ObjectCreator)
 	cls.Register(1, Test{})
 	v, _ := cls.New(1)
-	fmt.Println("新对象:", v.(*Test))
+	fmt.Println("新对象:", Typeof(v))
 }

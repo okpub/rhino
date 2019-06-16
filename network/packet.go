@@ -3,7 +3,7 @@ package network
 import (
 	"fmt"
 
-	"github.com/okpub/rhino/bit"
+	"github.com/okpub/rhino/bytes"
 )
 
 /*
@@ -11,7 +11,7 @@ import (
  * msgID: 0表示异步, >0表示同步消息，(必须回传, 不回传会导致客户端阻塞)
  */
 type SocketPacket struct {
-	bit.ByteArray
+	bytes.ByteArray
 	Topic int
 	MsgID int64 //默认异步(0)
 }

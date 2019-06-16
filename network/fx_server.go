@@ -2,9 +2,7 @@ package network
 
 import (
 	"fmt"
-	"net"
 	"sync"
-	"time"
 )
 
 /*
@@ -60,13 +58,8 @@ func (this *myServer) Serve(ln Listener, newAgent Handler) (err error) {
 		if conn, err = ln.Accept(); err == nil {
 			this.joinAndRunner(conn, newAgent)
 		} else {
-			if temp, ok := err.(net.Error); ok && temp.Temporary() {
-				fmt.Println("WARN: server err =", err.Error(), ", addr =", ln.Address(), "[wait 200ms]")
-				time.Sleep(time.Millisecond * 200)
-			} else {
-				fmt.Println("ERROR: server err =", err.Error(), ", addr =", ln.Address(), "[stop serve]")
-				break
-			}
+			fmt.Println("ERROR: server err =", err.Error(), ", addr =", ln.Address(), "[stop serve]")
+			break
 		}
 	}
 	return

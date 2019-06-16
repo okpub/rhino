@@ -40,22 +40,6 @@ func SleepSec(sec int) {
 }
 
 /*
-系统启动的时间
-*/
-var sys_time time.Time
-
-func init() {
-	sys_time = time.Now()
-}
-
-/*
- * 系统运行时间(毫秒)
- */
-func GetTimer() time.Duration {
-	return time.Since(sys_time)
-}
-
-/*
  * 时间戳
  */
 func Nano() int64 {
@@ -87,12 +71,15 @@ func Day() int64 {
 }
 
 /*
- * 时间戳转化
+ * 秒转time
  */
 func SecTime(v int64) time.Time {
 	return time.Unix(v, 0)
 }
 
+/*
+* 纳秒转time
+ */
 func NanoTime(v int64) time.Time {
 	return time.Unix(0, v)
 }

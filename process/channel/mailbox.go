@@ -3,6 +3,7 @@ package channel
 import (
 	"fmt"
 
+	"github.com/okpub/rhino/errors"
 	"github.com/okpub/rhino/process"
 )
 
@@ -14,7 +15,7 @@ type myBuffer struct {
 }
 
 func (this *myBuffer) init(args ...Option) {
-	this.opts.Fill(args...)
+	this.opts.Filler(args...)
 	//uninitialized
 	if pendingNum := this.opts.PendingNum; this.opts.Buffer == nil {
 		if pendingNum < 5 {
@@ -34,7 +35,7 @@ func (this *myBuffer) Start() (err error) {
 }
 
 func (this *myBuffer) Close() (err error) {
-	defer func() { err = process.CatchError(recover()) }()
+	defer func() { err = errors.Catch(recover()) }()
 	this.opts.Close()
 	return
 }
@@ -47,7 +48,7 @@ func (this *myBuffer) run() {
 	)
 	defer func() {
 		if debug {
-			if err = process.CatchError(recover()); err != nil {
+			if err = errors.Catch(recover()); err != nil {
 				this.ThrowFailure(err, body)
 			}
 		}
@@ -65,19 +66,12 @@ func (this *myBuffer) run() {
 }
 
 func (this *myBuffer) Post(v interface{}) (err error) {
-	defer func() {
-		if err == nil {
-			err = process.CatchError(recover())
-		} else {
-			process.CatchError(recover())
-		}
-		if err != nil {
-			this.OnDiscarded(err, v)
-		}
-	}()
 	this.OnPosted(v)
-	err = this.opts.Post(v)
-	return
+	return errors.Try(func() error {
+		return this.opts.Post(v)
+	}, func(err error) {
+		this.OnDiscarded(err, v)
+	})
 }
 
 //options无法改变内部选项

@@ -44,8 +44,3 @@ type (
 type EmptyRunner int
 
 func (EmptyRunner) Run() { /*不执行任何*/ }
-
-//函数运行
-type FuncRunner func()
-
-func (fn FuncRunner) Run() { fn() }

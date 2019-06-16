@@ -10,7 +10,7 @@ type Options struct {
 }
 
 //reset buffer
-func (this *Options) Fill(args ...Option) {
+func (this *Options) Filler(args ...Option) {
 	for _, o := range args {
 		o(this)
 	}

@@ -24,7 +24,7 @@ type Options struct {
 	DeathDelay time.Duration
 }
 
-func (this *Options) Fill(args ...Option) {
+func (this *Options) Filler(args ...Option) {
 	for _, o := range args {
 		o(this)
 	}

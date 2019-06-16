@@ -3,6 +3,8 @@ package network
 import (
 	"fmt"
 	"sync/atomic"
+
+	"github.com/okpub/rhino/errors"
 )
 
 //如果你不加入到服务里面是无法快速启动监听的
@@ -19,16 +21,7 @@ type myManager struct {
 
 //join
 func (this *myManager) Join(conn Link) (err error) {
-	defer func() {
-		if cerr := recover(); cerr != nil {
-			switch p := cerr.(type) {
-			case error:
-				err = p
-			default:
-				err = fmt.Errorf("%v", cerr)
-			}
-		}
-	}()
+	defer func() { err = errors.Catch(recover()) }()
 	this.ch <- conn
 	return
 }

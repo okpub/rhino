@@ -1,4 +1,4 @@
-package bit
+package bytes
 
 import (
 	"fmt"
@@ -7,7 +7,26 @@ import (
 
 //write
 func (this *ByteArray) Wobj(v interface{}) {
-	this.encode(reflect.ValueOf(v))
+	switch p := v.(type) {
+	case WriteObj:
+		p.Write(this)
+	case IWriter:
+		p.WriteTo(this, 0) //this Will grow
+	default:
+		this.encode(reflect.ValueOf(v))
+	}
+}
+
+//read
+func (this *ByteArray) Robj(v interface{}) {
+	switch p := v.(type) {
+	case ReadObj:
+		p.Read(this)
+	case IWriter:
+		this.WriteTo(p, 0) //p Will grow
+	default:
+		this.decode(reflect.ValueOf(v))
+	}
 }
 
 func (b *ByteArray) encode(fd reflect.Value) {
@@ -21,6 +40,10 @@ func (b *ByteArray) encode(fd reflect.Value) {
 			if item := fd.Field(i); item.CanSet() {
 				b.encode(item)
 			}
+		}
+	case reflect.Array:
+		for i := 0; i < fd.Len(); i++ {
+			b.encode(fd.Index(i))
 		}
 	case reflect.Slice:
 		for i := 0; i < fd.Len(); i++ {
@@ -55,11 +78,6 @@ func (b *ByteArray) encode(fd reflect.Value) {
 	}
 }
 
-//read
-func (this *ByteArray) Robj(v interface{}) {
-	this.decode(reflect.ValueOf(v))
-}
-
 func (b *ByteArray) decode(fd reflect.Value) {
 	switch fd.Kind() {
 	case reflect.Ptr:
@@ -71,6 +89,10 @@ func (b *ByteArray) decode(fd reflect.Value) {
 			if item := fd.Field(i); item.CanSet() {
 				b.decode(item)
 			}
+		}
+	case reflect.Array:
+		for i := 0; i < fd.Len(); i++ {
+			b.decode(fd.Index(i))
 		}
 	case reflect.Slice:
 		for i := 0; i < fd.Len(); i++ {
@@ -103,4 +125,13 @@ func (b *ByteArray) decode(fd reflect.Value) {
 	default:
 		panic(fmt.Errorf("fail read type %s", fd.Kind().String()))
 	}
+}
+
+func makeBytes(n int) []byte {
+	defer func() {
+		if recover() != nil {
+			panic(fmt.Errorf("bytes.Buffer: too large"))
+		}
+	}()
+	return make([]byte, n)
 }

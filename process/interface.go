@@ -1,9 +1,5 @@
 package process
 
-import (
-	"fmt"
-)
-
 //bbb
 type (
 
@@ -37,16 +33,3 @@ type (
 		OnFree()                        //In general for the heart rate response or no news of free time
 	}
 )
-
-//catch err function
-func CatchError(code interface{}) (err error) {
-	if code != nil {
-		switch p := code.(type) {
-		case error:
-			err = p
-		default:
-			err = fmt.Errorf("%v", p)
-		}
-	}
-	return
-}

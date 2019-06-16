@@ -39,7 +39,7 @@ type testClient struct {
 
 func newClient(conn Link) Runnable {
 	//start
-	return &testClient{Conn: With(conn.(net.Conn))}
+	return &testClient{Conn: conn.(Conn)}
 }
 
 func (this *testClient) Run() {
@@ -75,21 +75,11 @@ func init() {
 	//dail
 	OnHandler(newClient, "router", "gate")
 
-	dialer := NewManager("router")
-	tcp.Join(dialer)
+	dialer := tcp.Group("router")
+	dialer.Join(WithErr(DialScan(TCP_LINK, "localhost:8084")))
 	//
-	conn, err := DialScan(TCP_LINK, "localhost:8084")
-	//这里可以将conn包装后发给dialer
-	if err == nil {
-		dialer.Join(conn)
-	}
-	//
-	dialer = NewManager("gate")
-	tcp.Join(dialer)
-	conn, err = DialScan(TCP_LINK, "localhost:8084")
-	if err == nil {
-		dialer.Join(conn)
-	}
+	dialer = tcp.Group("gate")
+	dialer.Join(WithErr(DialScan(TCP_LINK, "localhost:8084")))
 
 	time.Sleep(time.Second * 3)
 	tcp.Close()

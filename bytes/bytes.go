@@ -1,21 +1,20 @@
-package bit
+package bytes
 
 import (
 	"encoding/binary"
+	"io"
 )
 
-func New() IBytes {
+func New() IBuffer {
 	return &ByteArray{}
 }
 
-func With(b []byte) IBytes {
-	this := &ByteArray{}
-	this.SetBuffer(b)
-	return this
+func With(b []byte) IBuffer {
+	return &ByteArray{Buffer: NewBuffer(b)}
 }
 
-func WithSize(n int) IBytes {
-	return With(make([]byte, n))
+func WithSize(n int) IBuffer {
+	return With(makeBytes(n))
 }
 
 //bytes
@@ -24,18 +23,14 @@ type ByteArray struct {
 	endian binary.ByteOrder
 }
 
-func (this *ByteArray) EndianSet(v binary.ByteOrder) {
-	this.endian = v
-}
-
-func (this *ByteArray) Endian() binary.ByteOrder {
-	if this.endian == nil {
-		return binary.BigEndian //默认大端
+func (this *ByteArray) Endian() (endian binary.ByteOrder) {
+	if endian = this.endian; endian == nil {
+		endian = binary.BigEndian
 	}
-	return this.endian
+	return
 }
 
-//特殊的io(int=int64 int=int32)
+//特殊的io(int=int64/int32)
 func (this *ByteArray) Rint() int {
 	return int(this.Rint32())
 }
@@ -67,31 +62,31 @@ func (this *ByteArray) Rint64() int64 {
 
 func (this *ByteArray) Ruint8() (v uint8) {
 	v = this.Bit(this.p)
-	this.Move(1)
+	this.Next(1)
 	return
 }
 
 func (this *ByteArray) Ruint16() (v uint16) {
-	v = this.Endian().Uint16(this.Payload())
-	this.Move(2)
+	v = this.Endian().Uint16(this.payload())
+	this.Next(2)
 	return
 }
 
 func (this *ByteArray) Ruint32() (v uint32) {
-	v = this.Endian().Uint32(this.Payload())
-	this.Move(4)
+	v = this.Endian().Uint32(this.payload())
+	this.Next(4)
 	return
 }
 
 func (this *ByteArray) Ruint64() (v uint64) {
-	v = this.Endian().Uint64(this.Payload())
-	this.Move(8)
+	v = this.Endian().Uint64(this.payload())
+	this.Next(8)
 	return
 }
 
 func (this *ByteArray) Rstr() (str string) {
-	if n := this.Ruint32(); n > 0 {
-		b := make([]byte, n)
+	if n := this.Rint(); n > 0 {
+		b := makeBytes(n)
 		this.Read(b)
 		str = string(b)
 	}
@@ -127,25 +122,25 @@ func (this *ByteArray) Wint64(v int64) {
 func (this *ByteArray) Wuint8(v uint8) {
 	this.grow(1)
 	this.BitSet(this.p, v)
-	this.Move(1)
+	this.Next(1)
 }
 
 func (this *ByteArray) Wuint16(v uint16) {
 	this.grow(2)
-	this.Endian().PutUint16(this.Payload(), v)
-	this.Move(2)
+	this.Endian().PutUint16(this.payload(), v)
+	this.Next(2)
 }
 
 func (this *ByteArray) Wuint32(v uint32) {
 	this.grow(4)
-	this.Endian().PutUint32(this.Payload(), v)
-	this.Move(4)
+	this.Endian().PutUint32(this.payload(), v)
+	this.Next(4)
 }
 
 func (this *ByteArray) Wuint64(v uint64) {
 	this.grow(8)
-	this.Endian().PutUint64(this.Payload(), v)
-	this.Move(8)
+	this.Endian().PutUint64(this.payload(), v)
+	this.Next(8)
 }
 
 func (this *ByteArray) Wstr(str string) {
@@ -158,15 +153,13 @@ func (this *ByteArray) Wstr(str string) {
 	}
 }
 
-/*
- * 读取一部分写入到对象
- */
-func (this *ByteArray) ReadAny(b IBuffer, n int) int {
-	if n < 1 { //read all
-		n = b.Write(this.buf[this.p:])
+//b会增长
+func (this *ByteArray) WriteTo(b io.Writer, n int) int {
+	if n < 1 {
+		n, _ = b.Write(this.buf[this.p:])
 	} else {
-		n = b.Write(this.buf[this.p : this.p+n])
+		n, _ = b.Write(this.buf[this.p : this.p+n])
 	}
-	this.Move(n)
+	this.Next(n)
 	return n
 }

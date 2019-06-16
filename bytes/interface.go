@@ -1,13 +1,11 @@
-package bit
+package bytes
 
-type IBuffer interface {
-	Write([]byte) int
-	Read([]byte) int
-	Bytes() []byte
-	SetBuffer([]byte)
-}
+import (
+	"io"
+)
 
 type IWriter interface {
+	io.Writer
 	Wbool(bool)
 	Wstr(string)
 	//int
@@ -24,9 +22,11 @@ type IWriter interface {
 	Wuint64(uint64)
 	//other
 	Wobj(interface{})
+	WriteTo(io.Writer, int) int
 }
 
 type IReader interface {
+	io.Reader
 	Rbool() bool
 	Rstr() string
 	//int
@@ -43,18 +43,29 @@ type IReader interface {
 	Ruint64() uint64
 	//other
 	Robj(interface{})
-	ReadAny(IBuffer, int) int
 }
 
-type IBytes interface {
-	IBuffer
+type IBuffer interface {
 	IReader
 	IWriter
+	//pos
 	Pos() int
 	Seek(int)
 	SeekBegin()
 	SeekEnd() int
+	//len
 	Len() int
 	LenSet(int)
 	Available() int
+	//bytes
+	Bytes() []byte
+}
+
+//i/o object
+type ReadObj interface {
+	Read(IReader)
+}
+
+type WriteObj interface {
+	Write(IWriter)
 }

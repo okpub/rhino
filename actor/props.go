@@ -43,10 +43,10 @@ func WithStream(producer Producer, stream remote.Stream) *Options {
 //default func invoker
 type funcBroker func(interface{})
 
-func (f funcBroker) DispatchMessage(body interface{})         { f(body) }
-func (f funcBroker) PreStart()                                { f(started) }
-func (f funcBroker) PostStop()                                { f(stopped) }
-func (f funcBroker) ThrowFailure(err error, body interface{}) { f(err) }
+func (f funcBroker) DispatchMessage(body interface{})      { f(body) }
+func (f funcBroker) PreStart()                             { f(started) }
+func (f funcBroker) PostStop()                             { f(stopped) }
+func (f funcBroker) ThrowFailure(err error, _ interface{}) { f(err) }
 
 func FuncBroker(f func(interface{})) process.Broker {
 	return funcBroker(f)
