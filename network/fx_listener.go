@@ -21,13 +21,13 @@ type myListener struct {
 }
 
 func (this *myListener) Accept() (conn Link, err error) {
-Loop:
+process:
 	if err = this.err; err == nil {
 		conn, err = this.ln.Accept()
 		if temp, ok := err.(net.Error); ok && temp.Temporary() {
 			fmt.Println("WARN: ", err.Error(), ", addr =", this.addr, "[wait ", this.free, "]")
 			time.Sleep(this.free)
-			goto Loop
+			goto process
 		}
 	}
 	return

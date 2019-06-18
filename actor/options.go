@@ -6,9 +6,9 @@ import (
 
 type SpawnFunc func(SpawnerContext, *Options) ActorRef
 
+type ContextDecorator func(next ContextDecoratorFunc) ContextDecoratorFunc
 type ReceiverMiddleware func(next ReceiverFunc) ReceiverFunc
 type SenderMiddleware func(next SenderFunc) SenderFunc
-type ContextDecorator func(next ContextDecoratorFunc) ContextDecoratorFunc
 type SpawnMiddleware func(next SpawnFunc) SpawnFunc
 
 //process interface
@@ -57,8 +57,15 @@ type Options struct {
 	contextDecoratorChain   ContextDecoratorFunc
 	//spawner
 	spawner              SpawnFunc
-	spawnMiddleware      []SpawnMiddleware //no used
-	spawnMiddlewareChain SpawnFunc         //no used
+	spawnMiddleware      []SpawnMiddleware
+	spawnMiddlewareChain SpawnFunc
+}
+
+func (this Options) Copy(args ...Option) *Options {
+	for _, o := range args {
+		o(&this)
+	}
+	return &this
 }
 
 func (this *Options) NewActor() Actor {
@@ -90,19 +97,6 @@ func (this *Options) GetSpawner() (spawner SpawnFunc) {
 		}
 	}
 	return
-}
-
-func (this *Options) Fill(args ...Option) {
-	for _, o := range args {
-		o(this)
-	}
-}
-
-func (this Options) Copy(args ...Option) *Options {
-	for _, o := range args {
-		o(&this)
-	}
-	return &this
 }
 
 //private

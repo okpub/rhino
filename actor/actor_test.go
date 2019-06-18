@@ -198,9 +198,7 @@ func init() {
 				client = nil
 			//reset
 			case []byte:
-				client = remote.New(remote.OptionWithFunc(func() remote.Stream {
-					return network.WithErr(network.DialScan("", addr))
-				}))
+				client = remote.New(remote.OptionAddr(addr))
 				client.OnRegister(defaultDispatcher, FuncBroker(func(data interface{}) {
 					switch body := data.(type) {
 					case []byte:

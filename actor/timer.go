@@ -8,7 +8,7 @@ type Timer interface {
 	Once(time.Duration, ...interface{})
 	Loop(time.Duration, ...interface{})
 	Start(time.Duration, int, ...interface{})
-	IsRunning() bool
+	Running() bool
 	Num() uint64
 	Stop()
 }
@@ -45,7 +45,12 @@ func (this *ActorTimer) Start(delay time.Duration, count int, args ...interface{
 	this.openFlag = true
 	this.exit = make(chan struct{})
 	//go thread
-	event := &timerCtx{Timer: this, id: this.next(), count: count, args: args}
+	event := &timerCtx{
+		Timer: this,
+		id:    this.next(),
+		count: count,
+		args:  args,
+	}
 	go setTimeout(this.exit, delay, count, func() { this.Self().Tell(event.schedule) })
 }
 
@@ -56,8 +61,8 @@ func (this *ActorTimer) Stop() {
 	}
 }
 
-func (this *ActorTimer) IsRunning() bool { return this.openFlag }
-func (this *ActorTimer) Num() uint64     { return this.id }
+func (this *ActorTimer) Running() bool { return this.openFlag }
+func (this *ActorTimer) Num() uint64   { return this.id }
 
 //class timerCtx
 type timerCtx struct {
@@ -68,7 +73,7 @@ type timerCtx struct {
 }
 
 func (this *timerCtx) schedule() {
-	if this.IsRunning() && this.id == this.Num() {
+	if this.Running() && this.id == this.Num() {
 		//stopped
 		if !timerActive(&this.count) {
 			this.Stop()
@@ -90,6 +95,7 @@ func (this *timerCtx) schedule() {
 	}
 }
 
+//private static
 func setTimeout(exit <-chan struct{}, delay time.Duration, count int, caller func()) {
 	timer := time.NewTicker(delay)
 	defer timer.Stop()

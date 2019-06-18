@@ -10,34 +10,52 @@ import (
 )
 
 //net actor prosser
-type mySocket struct {
+type Socket struct {
 	process.UntypeProcess
-	//opts
-	opts Options
+
+	//net io
+	conn Stream
+
+	//The read timeout, no Settings, is blocking
+	rTimeout time.Duration
+
+	//The send timeout, no Settings, is blocking
+	sTimeout time.Duration
+
+	//The heartbeat timeout, no Settings, no heartbeat
+	pTimeout time.Duration
+
+	//The delay closing
+	dieDelay time.Duration
 }
 
-func (this *mySocket) init(args ...Option) {
-	this.opts.Filler(args...)
+//private 填充，初始化使用
+func (this *Socket) filler(opts ...Option) *Socket {
+	for _, o := range opts {
+		o(this)
+	}
+	return this
 }
 
 //procsess
-func (this *mySocket) Start() (err error) {
+func (this *Socket) Start() (err error) {
 	this.OnStarted()
 	this.Schedule(this.run)
 	return
 }
 
-func (this *mySocket) Close() (err error) {
-	err = this.opts.Close()
+func (this *Socket) Close() (err error) {
+	err = this.conn.Close()
 	return
 }
 
 //private
-func (this *mySocket) run() {
+func (this *Socket) run() {
 	var (
 		err   error
 		body  []byte
 		debug = false
+		conn  = this.conn
 	)
 	//dead why
 	defer func() {
@@ -49,19 +67,19 @@ func (this *mySocket) run() {
 		if err != nil {
 			this.ThrowFailure(err, body)
 		}
-		this.Close()
-		this.wait() //wait closing
+		this.Close() //must close
+		this.Sleep() //wait closing
 		this.PostStop()
 	}()
 	//start call
 	this.PreStart()
 	//read once time
-	this.opts.SetReadTimeout(this.opts.ReadTimeout)
+	conn.SetReadTimeout(this.rTimeout)
 	var pong bool
 	for {
-		body, err = this.Read()
+		body, err = conn.Read()
 		//ping timeout
-		this.opts.SetReadTimeout(this.opts.PingTimeout)
+		conn.SetReadTimeout(this.pTimeout)
 		if err == nil {
 			pong = true
 			//record read
@@ -73,7 +91,7 @@ func (this *mySocket) run() {
 			if temp, ok := err.(net.Error); ok && temp.Temporary() {
 				if pong {
 					pong = false
-					this.opts.SetReadTimeout(this.opts.ReadTimeout)
+					conn.SetReadTimeout(this.rTimeout)
 					//heartbeat notice
 					this.DispatchMessage(err)
 					//this.OnFree()
@@ -88,27 +106,22 @@ func (this *mySocket) run() {
 	}
 }
 
-func (this *mySocket) wait() {
-	if this.opts.DeathDelay > 0 {
-		fmt.Println("wait closing :", this.opts.DeathDelay)
-		time.Sleep(this.opts.DeathDelay)
+func (this *Socket) Sleep() {
+	if this.dieDelay > 0 {
+		fmt.Println("wait closing :", this.dieDelay)
+		time.Sleep(this.dieDelay)
 	}
-}
-
-func (this *mySocket) Read() ([]byte, error) {
-	return this.opts.Read()
 }
 
 //If set will write timeout (default send)
-func (this *mySocket) Send(b []byte) (err error) {
+func (this *Socket) Send(b []byte) (err error) {
+	var (
+		conn = this.conn
+	)
 	this.OnPosted(b)
-	if err = this.opts.Send(b); err != nil {
+	conn.SetReadTimeout(this.sTimeout)
+	if err = conn.Write(b); err != nil {
 		this.OnDiscarded(err, b)
 	}
 	return
-}
-
-//options无法改变内部选项
-func (this *mySocket) Options() Options {
-	return this.opts
 }

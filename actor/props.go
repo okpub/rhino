@@ -24,7 +24,16 @@ func WithRemoteFunc(actor ActorFunc, dial func() remote.Stream) *Options {
 	return &Options{
 		producer: func() Actor { return actor },
 		processer: func() ActorProcess {
-			return &RemoteProcess{SocketProcess: remote.New(remote.OptionWithFunc(dial))}
+			return &RemoteProcess{SocketProcess: remote.New(remote.OptionFunc(dial))}
+		},
+	}
+}
+
+func WithRemoteAddr(actor ActorFunc, addr string) *Options {
+	return &Options{
+		producer: func() Actor { return actor },
+		processer: func() ActorProcess {
+			return &RemoteProcess{SocketProcess: remote.New(remote.OptionAddr(addr))}
 		},
 	}
 }
@@ -35,7 +44,7 @@ func WithStream(producer Producer, stream remote.Stream) *Options {
 		producer:   producer,
 		dispatcher: process.NewSyncDispatcher(0),
 		processer: func() ActorProcess {
-			return &RemoteProcess{SocketProcess: remote.NewKeepActive(remote.OptionWithStream(stream))}
+			return &RemoteProcess{SocketProcess: remote.NewKeepActive(remote.OptionStream(stream))}
 		},
 	}
 }

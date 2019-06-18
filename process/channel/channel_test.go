@@ -2,6 +2,7 @@ package channel
 
 import (
 	"fmt"
+	"testing"
 	"time"
 
 	"github.com/okpub/rhino/process"
@@ -11,20 +12,22 @@ type testBroker struct {
 	process.UntypeBroker
 }
 
-func (this *testBroker) p() {
-	fmt.Println(1)
+func (*testBroker) DispatchMessage(data interface{}) {
+
 }
 
 //test
 func init() {
+	fmt.Println("init")
+	time.Sleep(time.Millisecond * 100)
+}
+
+func BenchmarkTest(b *testing.B) {
 	mb := New(OptionPendingNum(100))
 	mb.OnRegister(process.NewDefaultDispatcher(0), &testBroker{})
 	mb.Start()
-	mb.Post("我是谁")
-	mb.Post("我是谁2")
-	opts := mb.Options()
-	opts.Post("我不是谁")
-
+	for i := 0; i < b.N; i++ {
+		mb.Post("我是谁")
+	}
 	mb.Close()
-	time.Sleep(time.Millisecond * 100)
 }

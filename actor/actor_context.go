@@ -43,6 +43,7 @@ func (this *actorContext) ensureExtras() *actorContextExtras {
 //interface Broker
 func (this *actorContext) PreStart() {
 	this.incarnateActor()
+	//会执行到链路
 	this.DispatchMessage(started)
 }
 
@@ -54,7 +55,7 @@ func (this *actorContext) PostStop() {
 }
 
 func (this *actorContext) ThrowFailure(err error, body interface{}) {
-	this.DispatchMessage(Errof(err, body))
+	this.DispatchMessage(err)
 }
 
 func (this *actorContext) DispatchMessage(body interface{}) {

@@ -1,46 +1,43 @@
 package channel
 
 import (
-	"fmt"
-
 	"github.com/okpub/rhino/errors"
 	"github.com/okpub/rhino/process"
 )
 
 //class mailbox(假邮箱，关闭后不能重复使用)
-type myBuffer struct {
+type Mailbox struct {
 	process.UntypeProcess
-	//options
-	opts Options
+	//message
+	buffer     chan interface{} //消息通道
+	pendingNum int              //会存在默认通道
+	blocking   bool             //非阻塞模式(默认阻塞)
 }
 
-func (this *myBuffer) init(args ...Option) {
-	this.opts.Filler(args...)
-	//uninitialized
-	if pendingNum := this.opts.PendingNum; this.opts.Buffer == nil {
-		if pendingNum < 5 {
-			fmt.Printf("Warning: The email is too small, easy to jam. [size=%d] \n", pendingNum)
-		} else if pendingNum > 1000 {
-			fmt.Printf("Info: The email is too much. [size=%d] \n", pendingNum)
-		}
-		this.opts.Buffer = make(chan interface{}, pendingNum)
+func (this *Mailbox) filler(opts ...Option) *Mailbox {
+	for _, o := range opts {
+		o(this)
 	}
+	if this.buffer == nil {
+		this.buffer = make(chan interface{}, this.pendingNum)
+	}
+	return this
 }
 
 //process
-func (this *myBuffer) Start() (err error) {
+func (this *Mailbox) Start() (err error) {
 	this.OnStarted()
 	this.Schedule(this.run)
 	return
 }
 
-func (this *myBuffer) Close() (err error) {
+func (this *Mailbox) Close() (err error) {
 	defer func() { err = errors.Catch(recover()) }()
-	this.opts.Close()
+	close(this.buffer)
 	return
 }
 
-func (this *myBuffer) run() {
+func (this *Mailbox) run() {
 	var (
 		body  interface{}
 		err   error
@@ -57,24 +54,33 @@ func (this *myBuffer) run() {
 	}()
 	this.PreStart()
 	//run
-	for body = range this.opts.Buffer {
-		//先统计(处理失败也会记录)
+	for body = range this.buffer {
+		//First of all statistics (processing failure will also record)
 		this.OnReceived(body)
-		//后处理
+		//process message
 		this.DispatchMessage(body)
 	}
 }
 
-func (this *myBuffer) Post(v interface{}) (err error) {
+func (this *Mailbox) Post(v interface{}) (err error) {
 	this.OnPosted(v)
 	return errors.Try(func() error {
-		return this.opts.Post(v)
+		return this.sendMessage(v)
 	}, func(err error) {
 		this.OnDiscarded(err, v)
 	})
 }
 
-//options无法改变内部选项
-func (this *myBuffer) Options() Options {
-	return this.opts
+//private
+func (this *Mailbox) sendMessage(v interface{}) (err error) {
+	if this.blocking {
+		this.buffer <- v
+	} else {
+		select {
+		case this.buffer <- v:
+		default:
+			err = OverfullErr
+		}
+	}
+	return
 }

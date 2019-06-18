@@ -13,36 +13,30 @@ const (
 
 type Producer func() SocketProcess
 
-//new
+//写超时，无心跳和读超时
 func New(opts ...Option) SocketProcess {
-	this := &mySocket{
-		opts: Options{
-			SendTimeout: defaultSendTimeout, // default send timeout
-		},
+	this := &Socket{
+		sTimeout: defaultSendTimeout, // default send timeout
 	}
-	this.init(opts...)
-	return this
+	return this.filler(opts...)
 }
 
+//存在心跳和读写超时
 func NewKeepActive(opts ...Option) SocketProcess {
-	this := &mySocket{
-		opts: Options{
-			ReadTimeout: defaultReadTimeout, // default read timeout
-			SendTimeout: defaultSendTimeout, // default send timeout
-			PingTimeout: defaultPingTimeout, // default heartbeat
-		},
+	this := &Socket{
+		rTimeout: defaultReadTimeout, // default read timeout
+		sTimeout: defaultSendTimeout, // default send timeout
+		pTimeout: defaultPingTimeout, // default heartbeat
 	}
-	this.init(opts...)
-	return this
+	return this.filler(opts...)
 }
 
+//无心跳，无读写超时
 func NewBlocking(opts ...Option) SocketProcess {
-	this := &mySocket{}
-	this.init(opts...)
-	return this
+	return new(Socket).filler(opts...)
 }
 
-//Producer
+//Producer(默认阻塞)
 func Unbounded(opts ...Option) Producer {
 	return func() SocketProcess {
 		return NewBlocking(opts...)

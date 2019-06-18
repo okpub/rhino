@@ -41,6 +41,14 @@ func WithErr(conn net.Conn, err error) Conn {
 	return &emptyConn{error: err}
 }
 
+func WithAddr(addr string) Conn {
+	conn, err := net.DialTimeout("tcp", addr, time.Second*5)
+	if err == nil {
+		return With(conn)
+	}
+	return &emptyConn{error: err}
+}
+
 /*协议部分=默认参数*/
 const (
 	NET_Paylen = 4

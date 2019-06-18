@@ -34,7 +34,7 @@ type OberSet map[int]ArraySubscription
 func (hset OberSet) Publish(topic int, args ...interface{}) (err error) {
 	if arr, ok := hset[topic]; ok {
 		for _, sub := range arr {
-			sub.Notify(newEvent(topic, args))
+			sub.Notify(NewEvent(topic, args))
 		}
 	} else {
 		err = fmt.Errorf("can't find topic=%d", topic)
@@ -113,7 +113,7 @@ type Event struct {
 	args  []interface{} //message is array
 }
 
-func newEvent(topic int, args []interface{}) Publication {
+func NewEvent(topic int, args []interface{}) Publication {
 	return &Event{topic: topic, args: args}
 }
 

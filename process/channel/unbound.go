@@ -9,13 +9,11 @@ const (
 
 //new
 func New(args ...Option) MessageQueue {
-	this := &myBuffer{
-		opts: Options{
-			PendingNum: defaultPendingNum,
-		},
+	this := &Mailbox{
+		pendingNum: defaultPendingNum,
+		blocking:   true,
 	}
-	this.init(args...)
-	return this
+	return this.filler(args...)
 }
 
 //producers

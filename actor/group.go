@@ -18,13 +18,13 @@ var (
 )
 
 type (
-	//只需要知道退出原因即可(不关心退出时候的信号)
 	Context interface {
 		Err() error
 	}
 
 	//节点(所有关闭操作在removeSelf里面执行)
 	Node interface {
+		Err() error
 		removeSelf(bool, error) error
 	}
 
@@ -41,20 +41,12 @@ func NewTree(parent Context) PIDGroup {
 	return PIDGroup{Context: parent}
 }
 
-//actor内核(谁来管理内核 用来继承)
+//控制子节点
 type PIDGroup struct {
 	Context
 	childs NodeSet
 	mu     sync.Mutex
 	err    error
-}
-
-//interface context
-func (this *PIDGroup) Err() (err error) {
-	this.mu.Lock()
-	err = this.err
-	this.mu.Unlock()
-	return
 }
 
 //interface tree
@@ -84,7 +76,7 @@ func (this *PIDGroup) removeChild(child Node) {
 //interface node
 func (this *PIDGroup) removeSelf(removeFromParent bool, code error) (err error) {
 	if code == nil {
-		panic("remove self code=nil")
+		panic(fmt.Errorf("remove self code=nil"))
 	}
 	this.mu.Lock()
 	if err = this.err; err == nil {
@@ -101,6 +93,13 @@ func (this *PIDGroup) removeSelf(removeFromParent bool, code error) (err error) 
 	if removeFromParent {
 		Fire(this.Context, this)
 	}
+	return
+}
+
+func (this *PIDGroup) Err() (err error) {
+	this.mu.Lock()
+	err = this.err
+	this.mu.Unlock()
 	return
 }
 

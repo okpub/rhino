@@ -1,16 +1,12 @@
 package actor
 
-func NewBroker(ctx *actorContext, p ActorProcess) *ActorBroker {
-	return &ActorBroker{actorContext: ctx, ActorProcess: p}
+func NewBroker(ctx *actorContext, ref ActorProcess) *ActorBroker {
+	return &ActorBroker{actorContext: ctx, ActorProcess: ref}
 }
 
 type ActorBroker struct {
 	*actorContext
 	ActorProcess
-}
-
-func (this *ActorBroker) ref() ActorProcess {
-	return this.ActorProcess
 }
 
 func (this *ActorBroker) Tell(data interface{}) error {
@@ -34,4 +30,8 @@ func (this *ActorBroker) removeSelf(removeFromParent bool, code error) (err erro
 		Fire(this.Context, this)
 	}
 	return
+}
+
+func (this *ActorBroker) ref() ActorProcess {
+	return this.ActorProcess
 }

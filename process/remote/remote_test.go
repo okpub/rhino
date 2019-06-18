@@ -48,15 +48,8 @@ func (this *testClient) DispatchMessage(v interface{}) {
 func init() {
 	//注册地址代理
 	network.OnHandler(func(conn network.Link) network.Runnable {
-
-		producer := Unbounded(OptionWithStream(network.WithLink(conn)),
-			OptionReadTimeout(time.Second*1),
-			OptionPingTimeout(time.Second*1))
-		//new session
-
 		//new ref
-		self := producer()
-		//init
+		self := NewKeepActive(OptionStream(network.WithLink(conn)))
 		self.OnRegister(process.NewSyncDispatcher(0), &testAgent{self: self})
 		self.Start()
 		return network.EmptyRunner(0)
@@ -64,10 +57,8 @@ func init() {
 	//启动服务
 	stop, _ := network.StartTcpServer(":8088")
 
-	//客户端
-	producer := Unbounded(OptionWithFunc(func() Stream {
-		return network.WithErr(network.DialScan(network.TCP_LINK, "127.0.0.1:8088"))
-	}))
+	//客户端制造商
+	producer := Unbounded(OptionAddr("127.0.0.1:8088"))
 	//todo
 	ref := producer()
 	ref.OnRegister(process.NewDefaultDispatcher(0), &testClient{self: ref})
