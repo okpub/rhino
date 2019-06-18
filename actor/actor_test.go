@@ -199,7 +199,7 @@ func init() {
 			//reset
 			case []byte:
 				client = remote.New(remote.OptionAddr(addr))
-				client.OnRegister(defaultDispatcher, FuncBroker(func(data interface{}) {
+				client.OnRegister(defaultDispatcher, DoFunc(func(data interface{}) {
 					switch body := data.(type) {
 					case []byte:
 						fmt.Println("body", network.ReadBegin(body))

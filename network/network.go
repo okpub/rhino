@@ -7,6 +7,10 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+/*
+* 目前使用actor框架，基本network可以休眠
+ */
+
 const (
 	WEB_LINK = "web"
 	TCP_LINK = "tcp"
@@ -20,7 +24,7 @@ type (
 		Network() string //网络类型
 		Addr() string    //客户端dial地址
 		PubAddr() string //服务器lnnr地址
-		//Next() NetAddr   //next网络节点，可以用作集群或者分布式
+		//Next() NetAddr   //next网络节点，可以用作集群或者分布式节点链
 	}
 )
 

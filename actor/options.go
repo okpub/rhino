@@ -22,6 +22,7 @@ type ActorProcess interface {
 
 // Default values
 var (
+	SyncDispatcher          = process.NewSyncDispatcher(0)
 	defaultDispatcher       = process.NewDefaultDispatcher(0)
 	defaultContextDecorator = func(ctx ActorContext) ActorContext { return ctx }
 

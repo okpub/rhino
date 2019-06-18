@@ -9,13 +9,14 @@ import (
 	"time"
 )
 
-/*协议部分=默认参数*/
+//默认数据
 const (
-	NET_Paylen = 4
-	NET_Maxlen = 1024 * 1024 * 5 //读包最大限制5mb linux: cat /proc/sys/net/core/rmem_max
+	NET_Maxlen   = 1024 * 1024 * 5
+	NET_Paylen   = 4
+	NET_Dialtime = time.Second * 5
 )
 
-/*做一个通用的socket*/
+/*通用的socket*/
 type Stream interface {
 	//io
 	Read() ([]byte, error)
@@ -24,6 +25,7 @@ type Stream interface {
 	//other
 	SetSendTimeout(time.Duration) error
 	SetReadTimeout(time.Duration) error
+	//addr
 	Address() string      //远端地址
 	LocalAddress() string //本地的地址
 }
@@ -38,26 +40,26 @@ func With(conn net.Conn) Stream {
 }
 
 func WithAddr(addr string) Stream {
-	conn, err := net.DialTimeout("tcp", addr, time.Second*5)
+	conn, err := net.DialTimeout("tcp", addr, NET_Dialtime)
 	if err == nil {
 		return With(conn)
 	}
 	return &errorConn{err: fmt.Errorf("Dial Err:" + err.Error()), addr: addr}
 }
 
-//class conn (注意：这里读写是不安全的，目前考虑是单线去写)
+//class conn (注意：跨线程读写是不安全的，需要做单线读写)
 type myConn struct {
-	rwc  net.Conn
-	wbuf *bufio.Writer
-	rbuf *bufio.Reader
+	rwc    net.Conn
+	wbuf   *bufio.Writer
+	rbuf   *bufio.Reader
+	header [NET_Paylen]byte
 }
 
 func (this *myConn) Read() (body []byte, err error) {
-	var lenData [NET_Paylen]byte
-	_, err = io.ReadFull(this.rbuf, lenData[0:])
+	_, err = io.ReadFull(this.rbuf, this.header[0:])
 	if err == nil {
 		//big endian
-		n := binary.BigEndian.Uint32(lenData[0:])
+		n := binary.BigEndian.Uint32(this.header[0:])
 		//empty or max full : throw error
 		if n > NET_Maxlen || n < 1 {
 			err = fmt.Errorf("read body len big: len=%d max=%d", n, NET_Maxlen)
@@ -67,7 +69,7 @@ func (this *myConn) Read() (body []byte, err error) {
 			body = make([]byte, NET_Paylen+n)
 			//read body
 			if _, err = io.ReadFull(this.rbuf, body[NET_Paylen:]); err == nil {
-				copy(body, lenData[0:])
+				copy(body, this.header[0:])
 			}
 		}
 	}

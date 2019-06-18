@@ -1,7 +1,6 @@
 package actor
 
 import (
-	"github.com/okpub/rhino/process"
 	"github.com/okpub/rhino/process/channel"
 	"github.com/okpub/rhino/process/remote"
 )
@@ -42,25 +41,9 @@ func WithRemoteAddr(actor ActorFunc, addr string) *Options {
 func WithStream(producer Producer, stream remote.Stream) *Options {
 	return &Options{
 		producer:   producer,
-		dispatcher: process.NewSyncDispatcher(0),
+		dispatcher: SyncDispatcher,
 		processer: func() ActorProcess {
 			return &RemoteProcess{SocketProcess: remote.NewKeepActive(remote.OptionStream(stream))}
 		},
 	}
 }
-
-//default func invoker
-type funcBroker func(interface{})
-
-func (f funcBroker) DispatchMessage(body interface{})      { f(body) }
-func (f funcBroker) PreStart()                             { f(started) }
-func (f funcBroker) PostStop()                             { f(stopped) }
-func (f funcBroker) ThrowFailure(err error, _ interface{}) { f(err) }
-
-func FuncBroker(f func(interface{})) process.Broker {
-	return funcBroker(f)
-}
-
-var (
-	SyncDispatcher = process.NewSyncDispatcher(0)
-)
