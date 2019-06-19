@@ -23,7 +23,6 @@ type ActorProcess interface {
 // default values
 var (
 	defaultOptions = Options{
-		processer:  UnboundedLocal(10),
 		dispatcher: process.NewDefaultDispatcher(0),
 		spawner: func(parent SpawnerContext, opts *Options) ActorRef {
 			ctx := newActorContext(parent, opts)
@@ -107,16 +106,6 @@ func (this *Options) spawn(parent SpawnerContext) ActorRef {
 /*
 *选项
  */
-func WithActor(producer Producer) Option {
-	return func(p *Options) {
-		p.producer = producer
-	}
-}
-
-func WithFunc(fn func(ActorContext)) Option {
-	return WithActor(ExchangeProducer(fn))
-}
-
 func OptionDispatcher(dispatcher process.Dispatcher) Option {
 	return func(p *Options) {
 		p.dispatcher = dispatcher

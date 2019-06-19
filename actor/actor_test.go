@@ -150,12 +150,12 @@ func init() {
 				client = nil
 			//reset
 			case []byte:
-				client = ctx.ActorOf(WithRemoteAddr(addr), WithFunc(func(child ActorContext) {
+				client = ctx.ActorOf(WithRemoteAddr(func(child ActorContext) {
 					switch body := child.Any().(type) {
 					case []byte:
 						fmt.Println("body", network.ReadBegin(body))
 					}
-				}))
+				}, addr))
 				client.Tell(b)
 			}
 		}))

@@ -20,9 +20,10 @@ func New(opts ...Option) SocketProcess {
 }
 
 func NewAddr(addr string, opts ...Option) SocketProcess {
-	this := &Socket{
-		conn: WithAddr(addr), //direct connection
-	}
+	this := &Socket{}
+	//dial
+	OptionStream(addr)(this)
+	//other
 	return this.Filler(opts...)
 }
 

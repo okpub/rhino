@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/okpub/rhino/network"
 	"github.com/okpub/rhino/process"
 )
 
@@ -23,13 +24,13 @@ func OptionStream(obj interface{}) Option {
 	return func(p *Socket) {
 		switch conn := obj.(type) {
 		case net.Conn:
-			p.conn = With(conn)
-		case Stream:
+			p.conn = network.With(conn)
+		case network.Stream:
 			p.conn = conn
-		case func() Stream:
+		case func() network.Stream:
 			p.conn = conn()
 		case string:
-			p.conn = WithAddr(conn)
+			p.conn = network.WithAddr(conn)
 		default:
 			panic(fmt.Errorf("remote paramer error: [class %T]", obj))
 		}

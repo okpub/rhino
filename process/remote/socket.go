@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/okpub/rhino/errors"
+	"github.com/okpub/rhino/network"
 	"github.com/okpub/rhino/process"
 )
 
@@ -14,13 +15,12 @@ type Socket struct {
 	process.UntypeProcess
 
 	//net io
-	conn Stream
+	conn network.Stream
 
 	//The read timeout, no Settings, is blocking
 	rTimeout time.Duration
 
-	//The send timeout, no Settings, is blocking
-	sTimeout time.Duration
+	sTimeout time.Duration //no used
 
 	//The heartbeat timeout, no Settings, no heartbeat
 	pTimeout time.Duration
@@ -123,7 +123,6 @@ func (this *Socket) Send(b []byte) (err error) {
 	)
 	this.OnPosted(b)
 	//If you not handle return value, please do not set up, Avoid sending part only
-	conn.SetSendTimeout(this.sTimeout)
 	if err = conn.Write(b); err != nil {
 		this.OnDiscarded(err, b)
 	}
