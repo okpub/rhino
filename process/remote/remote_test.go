@@ -2,6 +2,7 @@ package remote
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/okpub/rhino/network"
@@ -31,7 +32,7 @@ type testClient struct {
 }
 
 func (this *testClient) PostStop() {
-	fmt.Println("客户端关闭:", this.self)
+	fmt.Println("客户端关闭:")
 }
 
 func (this *testClient) DispatchMessage(v interface{}) {
@@ -46,19 +47,14 @@ func (this *testClient) DispatchMessage(v interface{}) {
 
 //test
 func init() {
-	//注册地址代理
-	network.OnHandler(func(conn network.Link) network.Runnable {
-		//new ref
-		self := NewKeepActive(OptionStream(network.WithLink(conn)))
-		self.OnRegister(process.NewSyncDispatcher(0), &testAgent{self: self})
-		self.Start()
-		return network.EmptyRunner(0)
-	}, ":8088")
-	//启动服务
-	stop, _ := network.StartTcpServer(":8088")
+	stop, _ := network.StartTcpServer(":8088", network.OptionHandler(func(conn net.Conn) error {
+		ref := NewKeepActive(conn)
+		ref.OnRegister(process.NewSyncDispatcher(0), &testAgent{self: ref})
+		return ref.Start()
+	}))
 
 	//客户端制造商
-	producer := Unbounded(OptionAddr("127.0.0.1:8088"))
+	producer := Unbounded(OptionStream("localhost:8088"))
 	//todo
 	ref := producer()
 	ref.OnRegister(process.NewDefaultDispatcher(0), &testClient{self: ref})

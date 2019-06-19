@@ -10,40 +10,49 @@ var (
 	OverfullErr = fmt.Errorf("channel overfull")
 )
 
-type Option func(*Mailbox)
-
 type MessageQueue interface {
 	process.Process
 	Post(interface{}) error
 }
 
-//选项(选项可以提取出来，因为选项比较少，所以不单独出来)
-func OptionPendingNum(pendingNum int) Option {
-	return func(p *Mailbox) {
-		p.pendingNum = pendingNum
+type Option func(*Mailbox)
+
+//options
+func OptionBuffer(obj interface{}) Option {
+	return func(p *Mailbox) { //PS: change buffer
+		switch buf := obj.(type) {
+		case chan interface{}:
+			p.buffer = buf
+		case func() chan interface{}:
+			p.buffer = buf()
+		case func(int) chan interface{}:
+			p.buffer = buf(p.pendingNum)
+		default:
+			panic(fmt.Errorf("buffer paramer error: [class %T]", obj))
+		}
 	}
 }
 
-func OptionBuffer(buffer chan interface{}) Option {
+func OptionNum(n int) Option {
 	return func(p *Mailbox) {
-		p.buffer = buffer //多次使用,可能会被替换
+		p.pendingNum = n
 	}
 }
 
-func OptionBlocking() Option { //阻塞模式
+func OptionBlocking() Option { //blocking mode
 	return func(p *Mailbox) {
-		p.blocking = true
+		p.nonblocking = false
 	}
 }
 
-func OptionNonBlocking() Option { //非阻塞模式
+func OptionNonBlocking() Option { //nonblocking mode
 	return func(p *Mailbox) {
-		p.blocking = false
+		p.nonblocking = true
 	}
 }
 
 func OptionFiller(opts ...Option) Option {
 	return func(p *Mailbox) {
-		p.filler(opts...)
+		p.Filler(opts...)
 	}
 }

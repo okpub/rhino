@@ -20,34 +20,35 @@ type ActorProcess interface {
 	Stop(ActorRef) error
 }
 
-// Default values
+// default values
 var (
-	SyncDispatcher          = process.NewSyncDispatcher(0)
-	defaultDispatcher       = process.NewDefaultDispatcher(0)
-	defaultContextDecorator = func(ctx ActorContext) ActorContext { return ctx }
-
-	defaultSpawner = func(parent SpawnerContext, opts *Options) ActorRef {
-		ctx := newActorContext(parent, opts)
-		//new process
-		self := NewBroker(&ctx, opts.NewProcess())
-		ctx.self = self
-		//addchild
-		Join(parent, self)
-		//init and start
-		self.OnRegister(opts.GetDispatcher(), &ctx)
-		self.Start()
-		return self
+	defaultOptions = Options{
+		processer:  UnboundedLocal(10),
+		dispatcher: process.NewDefaultDispatcher(0),
+		spawner: func(parent SpawnerContext, opts *Options) ActorRef {
+			ctx := newActorContext(parent, opts)
+			//new process
+			self := NewBroker(&ctx, opts.NewProcess())
+			ctx.self = self
+			//addchild
+			Join(parent, self)
+			//init and start
+			self.OnRegister(opts.GetDispatcher(), &ctx)
+			self.Start()
+			return self
+		},
 	}
 )
 
 //option
 type Option func(*Options)
 
-//options(可以添加refer的一个装饰器)
+//options
 type Options struct {
+	spawner    SpawnFunc
 	producer   Producer
-	dispatcher process.Dispatcher
 	processer  ProcessProducer
+	dispatcher process.Dispatcher
 	//guardianStrategy        SupervisorStrategy
 	//supervisionStrategy     SupervisorStrategy
 	receiverMiddleware      []ReceiverMiddleware
@@ -56,17 +57,24 @@ type Options struct {
 	senderMiddlewareChain   SenderFunc
 	contextDecorator        []ContextDecorator
 	contextDecoratorChain   ContextDecoratorFunc
-	//spawner
-	spawner              SpawnFunc
-	spawnMiddleware      []SpawnMiddleware
-	spawnMiddlewareChain SpawnFunc
+	spawnMiddleware         []SpawnMiddleware
+	spawnMiddlewareChain    SpawnFunc
+}
+
+//基于默认选项配置来做文章(如果你不用默认，那么自己重新定义)
+func NewOptions(opts ...Option) *Options {
+	return defaultOptions.Copy(opts...)
+}
+
+func (this *Options) Filler(args ...Option) *Options {
+	for _, o := range args {
+		o(this)
+	}
+	return this
 }
 
 func (this Options) Copy(args ...Option) *Options {
-	for _, o := range args {
-		o(&this)
-	}
-	return &this
+	return this.Filler(args...)
 }
 
 func (this *Options) NewActor() Actor {
@@ -78,44 +86,35 @@ func (this *Options) NewProcess() ActorProcess {
 }
 
 func (this *Options) GetDispatcher() process.Dispatcher {
-	if this.dispatcher == nil {
-		return defaultDispatcher
-	}
 	return this.dispatcher
 }
 
 func (this *Options) ContextWrapper(ctx ActorContext) ActorContext {
 	if this.contextDecoratorChain == nil {
-		return defaultContextDecorator(ctx)
+		return ctx
 	}
 	return this.contextDecoratorChain(ctx)
 }
 
-func (this *Options) GetSpawner() (spawner SpawnFunc) {
-	if spawner = this.spawnMiddlewareChain; spawner == nil {
-		if spawner = this.spawner; spawner == nil {
-			spawner = defaultSpawner
-		}
-	}
-	return
-}
-
 //private
 func (this *Options) spawn(parent SpawnerContext) ActorRef {
-	return this.GetSpawner()(parent, this)
+	if spawner := this.spawnMiddlewareChain; spawner != nil {
+		return spawner(parent, this)
+	}
+	return this.spawner(parent, this)
 }
 
 /*
 *选项
  */
-func OptionFromFunc(fn func(ActorContext)) Option {
-	return OptionProducer(func() Actor { return ActorFunc(fn) })
-}
-
-func OptionProducer(producer Producer) Option {
+func WithActor(producer Producer) Option {
 	return func(p *Options) {
 		p.producer = producer
 	}
+}
+
+func WithFunc(fn func(ActorContext)) Option {
+	return WithActor(ExchangeProducer(fn))
 }
 
 func OptionDispatcher(dispatcher process.Dispatcher) Option {
@@ -135,7 +134,7 @@ func OptionContextMiddlewareChain(childs ...ContextDecorator) Option {
 	return func(p *Options) {
 		p.contextDecorator = append(p.contextDecorator, childs...)
 		p.contextDecoratorChain = makeContextDecoratorChain(func(ctx ActorContext) ActorContext {
-			return defaultContextDecorator(ctx)
+			return ctx
 		}, p.contextDecorator...)
 	}
 }
@@ -155,5 +154,14 @@ func OptionSenderMiddlewareChain(childs ...SenderMiddleware) Option {
 		p.senderMiddlewareChain = makeSenderMiddlewareChain(func(_ SenderContext, sender ActorRef, message MessageEnvelope) error {
 			return sender.Tell(message)
 		}, p.senderMiddleware...)
+	}
+}
+
+func OptionSpawnMiddleware(childs ...SpawnMiddleware) Option {
+	return func(p *Options) {
+		p.spawnMiddleware = append(p.spawnMiddleware, childs...)
+		p.spawnMiddlewareChain = makeSpawnMiddlewareChain(func(parent SpawnerContext, opts *Options) ActorRef {
+			return opts.spawner(parent, opts)
+		}, p.spawnMiddleware...)
 	}
 }

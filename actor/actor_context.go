@@ -3,7 +3,7 @@ package actor
 //static
 func newActorContext(parent SpawnerContext, opts *Options) actorContext {
 	ctx := actorContext{
-		opts:     opts,
+		Options:  opts,
 		PIDGroup: NewTree(parent),
 		UntypeContext: UntypeContext{
 			parent: parent.Self(),
@@ -19,25 +19,13 @@ type actorContext struct {
 	//childs
 	PIDGroup
 	//New init
-	opts *Options
+	*Options
 	//The real context
 	extras *actorContextExtras
 }
 
-func (this *actorContext) ActorOf(opts *Options) ActorRef {
-	return opts.spawn(this)
-}
-
-//active actor
-func (this *actorContext) incarnateActor() {
-	this.actor = this.opts.NewActor()
-}
-
-func (this *actorContext) ensureExtras() *actorContextExtras {
-	if this.extras == nil {
-		this.extras = newActorContextExtras(this.opts.ContextWrapper(this))
-	}
-	return this.extras
+func (this *actorContext) ActorOf(opts ...Option) ActorRef {
+	return NewOptions(opts...).spawn(this)
 }
 
 //interface Broker
@@ -55,7 +43,7 @@ func (this *actorContext) PostStop() {
 }
 
 func (this *actorContext) ThrowFailure(err error, body interface{}) {
-	this.DispatchMessage(err)
+	this.DispatchMessage(Failure{err, body})
 }
 
 func (this *actorContext) DispatchMessage(body interface{}) {
@@ -105,7 +93,7 @@ func (this *actorContext) sendMessage(sender ActorRef, data interface{}) (err er
 		err = SendNilErr
 	} else {
 		//sender the chain
-		if sendChain := this.opts.senderMiddlewareChain; sendChain != nil {
+		if sendChain := this.Options.senderMiddlewareChain; sendChain != nil {
 			err = sendChain(this.ensureExtras().Context(), sender, WrapEnvelope(data))
 		} else {
 			err = sender.Tell(data)
@@ -116,9 +104,20 @@ func (this *actorContext) sendMessage(sender ActorRef, data interface{}) (err er
 
 func (this *actorContext) recvMessage(data interface{}) {
 	//reader the chain
-	if readChain := this.opts.receiverMiddlewareChain; readChain != nil {
+	if readChain := this.Options.receiverMiddlewareChain; readChain != nil {
 		readChain(this.ensureExtras().Context(), WrapEnvelope(data))
 	} else {
 		this.Receive(WrapEnvelope(data))
 	}
+}
+
+func (this *actorContext) incarnateActor() {
+	this.actor = this.Options.NewActor()
+}
+
+func (this *actorContext) ensureExtras() *actorContextExtras {
+	if this.extras == nil {
+		this.extras = newActorContextExtras(this.Options.ContextWrapper(this))
+	}
+	return this.extras
 }

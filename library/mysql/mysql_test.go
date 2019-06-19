@@ -29,8 +29,5 @@ func init() {
 		fmt.Printf("%+v \n", obj)
 	}
 	fmt.Println(err)
-	fmt.Printf("%p \n", &defaultAddr)
-	fmt.Printf("%p \n", &defaultAddr)
-	fmt.Println("借宿")
 	time.Sleep(time.Millisecond)
 }

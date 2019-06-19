@@ -3,7 +3,6 @@ package actor
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"sync"
 )
 
@@ -108,7 +107,7 @@ func Join(parent Context, child Node) (err error) {
 	if p, ok := parentTransformTree(parent); ok {
 		err = p.addChild(child)
 	} else {
-		fmt.Println("WARNING: root tree", Typeof(parent))
+		fmt.Printf("WARNING: root tree [class %T] \n", parent)
 	}
 	return
 }
@@ -117,18 +116,11 @@ func Fire(parent Context, child Node) {
 	if p, ok := parentTransformTree(parent); ok {
 		p.removeChild(child)
 	} else {
-		fmt.Println("INFO: fire untree parent=", Typeof(parent), " child=", Typeof(child))
+		fmt.Printf("INFO: fire untree [parent %T, child %T] \n", parent, child)
 	}
 }
 
 func parentTransformTree(parent Context) (p Tree, ok bool) {
 	p, ok = parent.(Tree)
 	return
-}
-
-func Typeof(p interface{}) string {
-	if p == nil {
-		return "<nil>"
-	}
-	return reflect.TypeOf(p).String()
 }

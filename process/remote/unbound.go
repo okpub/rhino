@@ -5,40 +5,42 @@ import (
 )
 
 //default values
-const (
+var (
 	defaultReadTimeout = time.Second * 3
-	defaultSendTimeout = time.Second * 5
 	defaultPingTimeout = time.Minute * 1
+	defaultSendTimeout = time.Second * 5 //no used
 )
 
 type Producer func() SocketProcess
 
-//写超时，无心跳和读超时
+//new
 func New(opts ...Option) SocketProcess {
+	this := &Socket{}
+	return this.Filler(opts...)
+}
+
+func NewAddr(addr string, opts ...Option) SocketProcess {
 	this := &Socket{
-		sTimeout: defaultSendTimeout, // default send timeout
+		conn: WithAddr(addr), //direct connection
 	}
-	return this.filler(opts...)
+	return this.Filler(opts...)
 }
 
-//存在心跳和读写超时
-func NewKeepActive(opts ...Option) SocketProcess {
+func NewKeepActive(obj interface{}, opts ...Option) SocketProcess {
 	this := &Socket{
-		rTimeout: defaultReadTimeout, // default read timeout
-		sTimeout: defaultSendTimeout, // default send timeout
-		pTimeout: defaultPingTimeout, // default heartbeat
+		rTimeout: defaultReadTimeout,
+		//sTimeout: defaultSendTimeout,
+		pTimeout: defaultPingTimeout,
 	}
-	return this.filler(opts...)
+	//Note that type: net.Conn
+	OptionStream(obj)(this)
+	//other options
+	return this.Filler(opts...)
 }
 
-//无心跳，无读写超时
-func NewBlocking(opts ...Option) SocketProcess {
-	return new(Socket).filler(opts...)
-}
-
-//Producer(默认阻塞)
+//Producer(默认无超时)
 func Unbounded(opts ...Option) Producer {
 	return func() SocketProcess {
-		return NewBlocking(opts...)
+		return New(opts...)
 	}
 }

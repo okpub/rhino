@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"time"
 )
 
 //默认数据
 const (
-	NET_Maxlen   = 1024 * 1024 * 5
-	NET_Paylen   = 4
-	NET_Dialtime = time.Second * 5
+	NET_Maxlen = 1024 * 1024 * 5
+	NET_Paylen = 4
 )
 
 /*通用的socket*/
@@ -40,24 +40,25 @@ func With(conn net.Conn) Stream {
 }
 
 func WithAddr(addr string) Stream {
-	conn, err := net.DialTimeout("tcp", addr, NET_Dialtime)
+	conn, err := net.DialTimeout("tcp", addr, time.Second*5)
 	if err == nil {
 		return With(conn)
 	}
 	return &errorConn{err: fmt.Errorf("Dial Err:" + err.Error()), addr: addr}
 }
 
-//class conn (注意：跨线程读写是不安全的，需要做单线读写)
+//class conn
 type myConn struct {
 	rwc    net.Conn
 	wbuf   *bufio.Writer
 	rbuf   *bufio.Reader
 	header [NET_Paylen]byte
+	mu     sync.Mutex
 }
 
 func (this *myConn) Read() (body []byte, err error) {
-	_, err = io.ReadFull(this.rbuf, this.header[0:])
-	if err == nil {
+	this.mu.Lock()
+	if _, err = io.ReadFull(this.rbuf, this.header[0:]); err == nil {
 		//big endian
 		n := binary.BigEndian.Uint32(this.header[0:])
 		//empty or max full : throw error
@@ -73,13 +74,16 @@ func (this *myConn) Read() (body []byte, err error) {
 			}
 		}
 	}
+	this.mu.Unlock()
 	return
 }
 
 func (this *myConn) Write(b []byte) (err error) {
+	this.mu.Lock()
 	if _, err = this.wbuf.Write(b); err == nil {
 		err = this.wbuf.Flush()
 	}
+	this.mu.Unlock()
 	return
 }
 

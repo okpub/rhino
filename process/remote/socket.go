@@ -30,11 +30,15 @@ type Socket struct {
 }
 
 //private 填充，初始化使用
-func (this *Socket) filler(opts ...Option) *Socket {
+func (this *Socket) Filler(opts ...Option) *Socket {
 	for _, o := range opts {
 		o(this)
 	}
 	return this
+}
+
+func (this Socket) Copy(opts ...Option) *Socket {
+	return this.Filler(opts...)
 }
 
 //procsess
@@ -113,13 +117,13 @@ func (this *Socket) Sleep() {
 	}
 }
 
-//If set will write timeout (default send)
 func (this *Socket) Send(b []byte) (err error) {
 	var (
 		conn = this.conn
 	)
 	this.OnPosted(b)
-	conn.SetReadTimeout(this.sTimeout)
+	//If you not handle return value, please do not set up, Avoid sending part only
+	conn.SetSendTimeout(this.sTimeout)
 	if err = conn.Write(b); err != nil {
 		this.OnDiscarded(err, b)
 	}

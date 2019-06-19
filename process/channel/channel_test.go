@@ -13,21 +13,25 @@ type testBroker struct {
 }
 
 func (*testBroker) DispatchMessage(data interface{}) {
-
+	fmt.Println(data)
 }
 
 //test
 func init() {
 	fmt.Println("init")
+	BenchmarkTest(&testing.B{N: 10})
 	time.Sleep(time.Millisecond * 100)
 }
 
 func BenchmarkTest(b *testing.B) {
-	mb := New(OptionPendingNum(100))
+	mb := New(OptionNonBlocking())
 	mb.OnRegister(process.NewDefaultDispatcher(0), &testBroker{})
 	mb.Start()
 	for i := 0; i < b.N; i++ {
-		mb.Post("我是谁")
+		err := mb.Post("我是谁")
+		if err != nil {
+			fmt.Println("err:", err)
+		}
 	}
 	mb.Close()
 }

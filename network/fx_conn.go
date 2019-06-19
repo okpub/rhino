@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+/*协议部分=默认参数*/
+const (
+	NET_Paylen   = 4
+	NET_Maxlen   = 1024 * 1024 * 5 //读包最大限制5mb linux: cat /proc/sys/net/core/rmem_max
+	NET_Dialtime = time.Second * 5
+)
+
 //封装net.Conn(协议处理后的read和write)
 type Conn interface {
 	Close() error
@@ -23,46 +30,29 @@ type Conn interface {
 
 //new
 func With(conn net.Conn) Conn {
-	return &durConn{
-		c:    conn,
+	return &myConn{
+		rwc:  conn,
 		wbuf: bufio.NewWriter(conn),
 		rbuf: bufio.NewReader(conn),
 	}
 }
 
-func WithLink(conn Link) Conn {
-	return With(conn.(net.Conn))
-}
-
-func WithErr(conn net.Conn, err error) Conn {
-	if err == nil {
-		return With(conn)
-	}
-	return &emptyConn{error: err}
-}
-
 func WithAddr(addr string) Conn {
-	conn, err := net.DialTimeout("tcp", addr, time.Second*5)
+	conn, err := net.DialTimeout("tcp", addr, NET_Dialtime)
 	if err == nil {
 		return With(conn)
 	}
-	return &emptyConn{error: err}
+	return &errorConn{err: fmt.Errorf("Dial Err:" + err.Error()), addr: addr}
 }
-
-/*协议部分=默认参数*/
-const (
-	NET_Paylen = 4
-	NET_Maxlen = 1024 * 1024 * 5 //读包最大限制5mb linux: cat /proc/sys/net/core/rmem_max
-)
 
 //协议封装(不适合UDP)
-type durConn struct {
-	c    net.Conn
+type myConn struct {
+	rwc  net.Conn
 	wbuf *bufio.Writer
 	rbuf *bufio.Reader
 }
 
-func (this *durConn) Read() (body []byte, err error) {
+func (this *myConn) Read() (body []byte, err error) {
 	//read paylen (multithreading unsafe)
 	var lenData [NET_Paylen]byte
 	_, err = io.ReadFull(this.rbuf, lenData[0:])
@@ -86,7 +76,7 @@ func (this *durConn) Read() (body []byte, err error) {
 	return
 }
 
-func (this *durConn) Write(b []byte) (err error) {
+func (this *myConn) Write(b []byte) (err error) {
 	if _, err = this.wbuf.Write(b); err == nil {
 		err = this.wbuf.Flush()
 	}
@@ -94,48 +84,49 @@ func (this *durConn) Write(b []byte) (err error) {
 }
 
 //conn
-func (this *durConn) Close() error {
-	return this.c.Close()
+func (this *myConn) Close() error {
+	return this.rwc.Close()
 }
 
-func (this *durConn) SetReadTimeout(timeout time.Duration) (err error) {
+func (this *myConn) SetReadTimeout(timeout time.Duration) (err error) {
 	if timeout > 0 {
-		err = this.c.SetReadDeadline(time.Now().Add(timeout))
+		err = this.rwc.SetReadDeadline(time.Now().Add(timeout))
 	} else {
-		err = this.c.SetReadDeadline(time.Time{})
+		err = this.rwc.SetReadDeadline(time.Time{})
 	}
 	return
 }
 
-func (this *durConn) SetSendTimeout(timeout time.Duration) (err error) {
+func (this *myConn) SetSendTimeout(timeout time.Duration) (err error) {
 	if timeout > 0 {
-		err = this.c.SetWriteDeadline(time.Now().Add(timeout))
+		err = this.rwc.SetWriteDeadline(time.Now().Add(timeout))
 	} else {
-		err = this.c.SetWriteDeadline(time.Time{})
+		err = this.rwc.SetWriteDeadline(time.Time{})
 	}
 	return
 }
 
-func (this *durConn) Address() string {
-	return this.c.RemoteAddr().String()
+func (this *myConn) Address() string {
+	return this.rwc.RemoteAddr().String()
 }
 
-func (this *durConn) LocalAddress() string {
-	return this.c.LocalAddr().String()
+func (this *myConn) LocalAddress() string {
+	return this.rwc.LocalAddr().String()
 }
 
 //die conn
-type emptyConn struct {
-	error
+type errorConn struct {
+	err  error
+	addr string
 }
 
 //base
-func (this *emptyConn) Read() ([]byte, error) { return nil, this.error }
-func (this *emptyConn) Write(_ []byte) error  { return this.error }
-func (this *emptyConn) Close() error          { return this.error }
+func (this *errorConn) Read() ([]byte, error) { return nil, this.err }
+func (this *errorConn) Write([]byte) error    { return this.err }
+func (this *errorConn) Close() error          { return this.err }
 
 //other
-func (this *emptyConn) Address() string                      { return "undefined" }
-func (this *emptyConn) LocalAddress() string                 { return "undefined" }
-func (this *emptyConn) SetReadTimeout(_ time.Duration) error { return this.error }
-func (this *emptyConn) SetSendTimeout(_ time.Duration) error { return this.error }
+func (this *errorConn) Address() string                    { return this.addr }
+func (this *errorConn) LocalAddress() string               { return "undefined" }
+func (this *errorConn) SetReadTimeout(time.Duration) error { return this.err }
+func (this *errorConn) SetSendTimeout(time.Duration) error { return this.err }

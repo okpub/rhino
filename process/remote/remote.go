@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -15,35 +16,26 @@ type Option func(*Socket)
 type SocketProcess interface {
 	process.Process
 	Send([]byte) error
-	//Copy(...Option) SocketProcess //改变参数，得到新副本(无法修改已经运行的参数部分)
 }
 
 //socket选项
-func OptionStream(conn Stream) Option {
+func OptionStream(obj interface{}) Option {
 	return func(p *Socket) {
-		p.conn = conn
+		switch conn := obj.(type) {
+		case net.Conn:
+			p.conn = With(conn)
+		case Stream:
+			p.conn = conn
+		case func() Stream:
+			p.conn = conn()
+		case string:
+			p.conn = WithAddr(conn)
+		default:
+			panic(fmt.Errorf("remote paramer error: [class %T]", obj))
+		}
 	}
 }
 
-func OptionConn(conn interface{}) Option {
-	return func(p *Socket) {
-		p.conn = With(conn.(net.Conn))
-	}
-}
-
-func OptionFunc(dial func() Stream) Option {
-	return func(p *Socket) {
-		p.conn = dial()
-	}
-}
-
-func OptionAddr(addr string) Option {
-	return func(p *Socket) {
-		p.conn = WithAddr(addr)
-	}
-}
-
-//timeout
 func OptionReadTimeout(d time.Duration) Option {
 	return func(p *Socket) {
 		p.rTimeout = d
@@ -62,15 +54,14 @@ func OptionPingTimeout(d time.Duration) Option {
 	}
 }
 
-func OptionDeathDelay(d time.Duration) Option {
+func OptionNonPing() Option {
 	return func(p *Socket) {
-		p.dieDelay = d
+		p.pTimeout = 0
 	}
 }
 
-//filler
-func OptionFiller(opts ...Option) Option {
+func OptionDeathDelay(d time.Duration) Option {
 	return func(p *Socket) {
-		p.filler(opts...)
+		p.dieDelay = d
 	}
 }

@@ -2,21 +2,19 @@ package channel
 
 type Producer func() MessageQueue
 
-//默认邮箱的大小
-const (
-	defaultPendingNum = 10
-)
-
 //new
 func New(args ...Option) MessageQueue {
-	this := &Mailbox{
-		pendingNum: defaultPendingNum,
-		blocking:   true,
-	}
-	return this.filler(args...)
+	return MakeBuffer(10, args...) //default value
 }
 
-//producers
+func MakeBuffer(pendingNum int, args ...Option) MessageQueue {
+	this := &Mailbox{
+		pendingNum: pendingNum, //default blocking
+	}
+	return this.Filler(args...)
+}
+
+//producer
 func Unbounded(args ...Option) Producer {
 	return func() MessageQueue {
 		return New(args...)

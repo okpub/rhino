@@ -51,6 +51,15 @@ func (*Started) String() string { return "start" }
 func (*Stopped) String() string { return "stop" }
 func (*Restart) String() string { return "restart" }
 
+type Failure struct {
+	err  error
+	body interface{}
+}
+
+func (this *Failure) Err() error        { return this.err }
+func (this *Failure) Body() interface{} { return this.body }
+func (this *Failure) String() string    { return "failure" }
+
 var (
 	started = &Started{}
 	stopped = &Stopped{}

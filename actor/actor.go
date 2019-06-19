@@ -1,9 +1,11 @@
 package actor
 
-//Actor生产商
+//Actor producer
 type Producer func() Actor
 
-//actor func
+func ExchangeProducer(obj ActorFunc) Producer { return func() Actor { return obj } }
+
+//Actor func
 type ActorFunc func(ActorContext)
 
 func (f ActorFunc) Receive(ctx ActorContext) { f(ctx) }
@@ -13,7 +15,7 @@ type Actor interface {
 	Receive(ActorContext)
 }
 
-//ref
+//proxy
 type ActorRef interface {
 	//tell nothing
 	Tell(interface{}) error

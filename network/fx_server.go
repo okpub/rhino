@@ -2,6 +2,7 @@ package network
 
 import (
 	"fmt"
+	"net"
 	"sync"
 )
 
@@ -9,81 +10,70 @@ import (
 *用于管理所有的link
 *可以开启多个服务, 但是不能单独关闭，如果你想单独关闭，使用join
  */
-func NewServer() Server {
-	return &myServer{}
+func NewServer(opts ...Option) Symbiote {
+	this := &Server{
+		Options: NewOptions(opts...),
+	}
+	return this
 }
 
 /*
-*class 用来管理端口(同一监听同一处理方式)
+* class 用来管理端口(同一监听同一处理方式)
 * 需要统计
  */
-type myServer struct {
+type Server struct {
+	*Options
 	mu  sync.Mutex
 	acs ConnSet
 	lns ListenSet
 }
 
 //快速启动(默认为tcp服务)
-func (this *myServer) Start(addr string) error {
-	return this.Join(NewListener(addr))
-}
-
-func (this *myServer) Group(addr string) (manager Dialer) {
-	manager = NewManager(addr)
-	this.Join(manager)
+func (this *Server) Start(addr string) (err error) {
+	this.Wrap(func() {
+		this.Serve(Listen(addr), this.Exchange(addr))
+	})
 	return
 }
 
-//手动加入(加入失败会被关闭)
-func (this *myServer) Join(ln Listener) (err error) {
-	var newAgent Handler
-	if newAgent, err = GetHandler(ln.Address()); err == nil {
-		this.Wrap(func() {
-			this.Serve(ln, newAgent)
-		})
-	} else {
-		ln.Close()
-	}
-	return
-}
-
-//最重要的接口
-func (this *myServer) Serve(ln Listener, newAgent Handler) (err error) {
+func (this *Server) Serve(ln net.Listener, handle Handler) (err error) {
 	defer ln.Close()
 	this.trackListener(ln, true)
 	defer this.trackListener(ln, false)
-	fmt.Println("open server: ", ln.Address())
-	var conn Link
+	fmt.Println("open server: ", ln.Addr().String())
+	var conn net.Conn
 	for {
 		if conn, err = ln.Accept(); err == nil {
-			this.joinAndRunner(conn, newAgent)
+			this.joinAndRunner(conn, handle)
 		} else {
-			fmt.Println("ERROR: server err =", err.Error(), ", addr =", ln.Address(), "[stop serve]")
+			fmt.Println("ERROR: server err =", err.Error(), ", addr =", ln.Addr().String(), "[stop serve]")
 			break
 		}
 	}
+	this.OnClose(ln, err)
 	return
 }
 
-func (this *myServer) Close() (err error) {
+func (this *Server) Close() (err error) {
 	this.mu.Lock()
 	err = this.closeListeners()
-	this.closeIdelConns()
+	this.closeIdleConns()
 	this.mu.Unlock()
 	return
 }
 
 //private
-func (this *myServer) joinAndRunner(conn Link, newAgent Handler) {
+func (this *Server) joinAndRunner(conn net.Conn, handle Handler) {
 	this.trackConn(conn, true)
 	this.Wrap(func() {
-		newAgent(conn).Run()
+		handle(conn)
 		this.trackConn(conn, false)
 		conn.Close()
+		//this.OnClose(conn, err)
 	})
 }
 
-func (this *myServer) closeListeners() (err error) {
+func (this *Server) closeListeners() (err error) {
 	for ln := range this.lns {
 		if cerr := ln.Close(); err == nil && cerr != nil {
 			err = cerr
@@ -93,7 +83,7 @@ func (this *myServer) closeListeners() (err error) {
 	return
 }
 
-func (this *myServer) trackListener(ln Listener, add bool) {
+func (this *Server) trackListener(ln net.Listener, add bool) {
 	this.mu.Lock()
 	if this.lns == nil {
 		this.lns = make(ListenSet)
@@ -106,14 +96,14 @@ func (this *myServer) trackListener(ln Listener, add bool) {
 	this.mu.Unlock()
 }
 
-func (this *myServer) closeIdelConns() {
+func (this *Server) closeIdleConns() {
 	for conn := range this.acs {
 		conn.Close()
 	}
 	this.acs = nil
 }
 
-func (this *myServer) trackConn(conn Link, add bool) {
+func (this *Server) trackConn(conn net.Conn, add bool) {
 	this.mu.Lock()
 	if this.acs == nil {
 		this.acs = make(ConnSet)
@@ -127,6 +117,6 @@ func (this *myServer) trackConn(conn Link, add bool) {
 }
 
 //go func
-func (this *myServer) Wrap(fn func()) {
+func (this *Server) Wrap(fn func()) {
 	go fn()
 }

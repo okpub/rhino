@@ -53,15 +53,14 @@ func Table(rows *sql.Rows, code error) (arr []RowObject, err error) {
 		vals  = make([]interface{}, count)
 		ptrs  = make([]interface{}, count)
 	)
+	for i := 0; i < count; i++ {
+		ptrs[i] = &vals[i]
+	}
 	for rows.Next() {
-		for i := 0; i < count; i++ {
-			ptrs[i] = &vals[i]
-		}
 		rows.Scan(ptrs...)
 		obj := make(RowObject)
 		for i, k := range columns {
 			obj[k] = vals[i]
-			//common.Trace("%s=%v", k, vals[i])
 		}
 		arr = append(arr, obj)
 	}
@@ -82,15 +81,14 @@ func Array(rows *sql.Rows, code error) (arr []RowArray, err error) {
 		vals  = make([]interface{}, count)
 		ptrs  = make([]interface{}, count)
 	)
+	for i := 0; i < count; i++ {
+		ptrs[i] = &vals[i]
+	}
 	for rows.Next() {
-		for i := 0; i < count; i++ {
-			ptrs[i] = &vals[i]
-		}
 		rows.Scan(ptrs...)
 		obj := make(RowArray, count)
 		for i := range columns {
 			obj[i] = vals[i]
-			//common.Trace("%s=%v", columns[i], vals[i])
 		}
 		arr = append(arr, obj)
 	}

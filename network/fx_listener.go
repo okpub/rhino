@@ -7,28 +7,36 @@ import (
 )
 
 //默认tcp
-func NewListener(addr string) Listener {
+func Listen(addr string) net.Listener {
 	ln, err := net.Listen("tcp", addr)
-	return &myListener{addr: addr, err: err, ln: ln, free: time.Millisecond * 200}
+	return &myListener{addr: addr, err: err, ln: ln}
 }
 
 //class listener
 type myListener struct {
 	addr string
 	err  error
-	free time.Duration
 	ln   net.Listener
 }
 
-func (this *myListener) Accept() (conn Link, err error) {
+func (this *myListener) Accept() (conn net.Conn, err error) {
+	if err = this.err; err != nil {
+		return
+	}
+	var (
+		ln           = this.ln
+		tempDuration = time.Millisecond * 100
+		maxDuration  = time.Second * 3
+	)
 process:
-	if err = this.err; err == nil {
-		conn, err = this.ln.Accept()
-		if temp, ok := err.(net.Error); ok && temp.Temporary() {
-			fmt.Println("WARN: ", err.Error(), ", addr =", this.addr, "[wait ", this.free, "]")
-			time.Sleep(this.free)
-			goto process
+	conn, err = ln.Accept()
+	if temp, ok := err.(net.Error); ok && temp.Temporary() {
+		if tempDuration *= 2; tempDuration > maxDuration {
+			tempDuration = maxDuration
 		}
+		fmt.Println("INFO: ", err.Error(), ", addr =", ln.Addr().String(), "[wait ", tempDuration, "]")
+		time.Sleep(tempDuration)
+		goto process
 	}
 	return
 }
@@ -40,6 +48,6 @@ func (this *myListener) Close() (err error) {
 	return
 }
 
-func (this *myListener) Address() string {
-	return this.addr
-}
+func (this *myListener) Addr() net.Addr  { return this }
+func (this *myListener) Network() string { return "tcp" }
+func (this *myListener) String() string  { return this.addr }

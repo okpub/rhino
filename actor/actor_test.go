@@ -1,86 +1,34 @@
 package actor
 
-//import (
-//	"fmt"
-//	"time"
-
-//	"github.com/rhino/core"
-//)
-
-//type TestDecorator struct {
-//	ActorContext
-//}
-
-//func (this *TestDecorator) String() string {
-//	return "我不告诉你"
-//}
-
-//func init() {
-//	ctx1 := func(next ContextDecoratorFunc) ContextDecoratorFunc {
-//		return func(ctx ActorContext) ActorContext {
-//			return next(&TestDecorator{ctx})
-//		}
-//	}
-
-//	m1 := func(next SenderFunc) SenderFunc {
-//		return func(ctx SenderContext, sender ActorRef, message MessageEnvelope) error {
-//			fmt.Println("来啊", ctx)
-//			//sender.Tell(message)
-//			return next(ctx, sender, message)
-//		}
-//	}
-
-//	ref := WithActor(Stage(), OptionFromFunc(func(ctx ActorContext) {
-//		//		fmt.Println(ctx.Any())
-
-//		//		childRef := WithActor(ctx, OptionFromFunc(func(child ActorContext) {
-//		//			fmt.Println("child:", child.Any())
-//		//		}))
-//		//		//
-//		//		ctx.Forward(childRef)
-//	}), OptionSenderMiddlewareChain(m1), OptionContextMiddlewareChain(ctx1))
-//	ref.Tell("我谁是")
-//	fmt.Println("over", core.SizeTypeof(ref))
-//	time.Sleep(time.Second)
-//}
-
 import (
 	"fmt"
+	"net"
 	"sync/atomic"
 	"time"
 
 	"github.com/okpub/rhino/core"
 	"github.com/okpub/rhino/network"
+	"github.com/okpub/rhino/process"
 	"github.com/okpub/rhino/process/remote"
 )
 
 type BeginObj struct {
-	add  bool
-	id   int64
-	self ActorRef
+	Add bool
 }
 
-type TellObj struct {
-	id   int64
-	body []byte
-}
+var fd_id int64
 
-type CloseObj struct {
+func NextID() int64 {
+	return atomic.AddInt64(&fd_id, 1)
 }
 
 type GateActor struct {
-	fd_id  int64
 	refs   map[int64]ActorRef
 	router interface{}
 }
 
-func (this *GateActor) NextID() int64 {
-	return atomic.AddInt64(&this.fd_id, 1)
-}
-
 func (this *GateActor) PreStart(ctx ActorContext) {
 	this.refs = make(map[int64]ActorRef)
-	this.start_server()
 }
 
 func (this *GateActor) Receive(ctx ActorContext) {
@@ -89,9 +37,8 @@ func (this *GateActor) Receive(ctx ActorContext) {
 		this.PreStart(ctx)
 	case *BeginObj:
 		this.trackUser(ctx, o)
-	case *TellObj:
-		this.tellUser(ctx, o.id, o.body)
 	case *network.SocketPacket:
+		//this.tellUser(ctx, o.id, o.body)
 		fmt.Println("网关接收:", o)
 	default:
 		fmt.Println("not handle:", ctx.Any())
@@ -99,16 +46,22 @@ func (this *GateActor) Receive(ctx ActorContext) {
 }
 
 func (this *GateActor) trackUser(ctx ActorContext, obj *BeginObj) {
-	if ref, ok := this.refs[obj.id]; ok {
-		if obj.add {
+	var (
+		session = ctx.Sender().(*Session)
+		id      = session.id
+		added   = obj.Add
+	)
+
+	if ref, ok := this.refs[id]; ok {
+		if added {
 			if ok {
 				ctx.Refuse()
 			} else {
-				this.refs[obj.id] = obj.self
+				this.refs[id] = session
 			}
 		} else {
-			if ref == obj.self {
-				delete(this.refs, obj.id)
+			if ref == session {
+				delete(this.refs, id)
 				ref.Close()
 			}
 		}
@@ -127,56 +80,27 @@ func (this *GateActor) tellUser(ctx ActorContext, id int64, body []byte) (err er
 	return
 }
 
-func (this *GateActor) start_server() {
-	network.OnHandler(func(conn network.Link) network.Runnable {
-		Stage().ActorOf(WithStream(func() Actor {
-			return &testAgent{}
-		}, network.WithLink(conn)))
-		return network.EmptyRunner(0)
-	}, ":8088")
-	//open
-	network.StartTcpServer(":8088")
-}
-
 //server agent
-type testAgent struct {
-	router  interface{} //路由
-	id      int64
-	sendRef ActorRef
+type Session struct {
+	id int64
+	ActorRef
 }
 
-func (this *testAgent) init(ctx ActorContext) {
-	this.sendRef = ctx.ActorOf(WithFunc(func(child ActorContext) {
-		switch body := child.Any().(type) {
-		case []byte:
-			child.Respond(body)
-			//ctx.Self().Tell(body) //给socket
-		case *Stopped:
-			ctx.Stop(ctx.Self()) //write close
-		case *Started:
-			//todo
-		default:
-			fmt.Println("can't handle:", body)
-		}
-	}))
-	//注册网关自己的发送通道
-	ctx.Bubble(&BeginObj{add: true, id: this.id, self: this.sendRef})
-}
-
-func (this *testAgent) Receive(ctx ActorContext) {
-	switch b := ctx.Any().(type) {
-	case []byte:
-		fmt.Println("服务端收到:", network.ReadBegin(b))
-		ctx.Respond(network.WriteBegin(0x03).Flush())
-	case error:
-		fmt.Println("心跳", b)
-		ctx.Respond(network.WriteBegin(0x01).Flush())
-	case *Started:
-		fmt.Println("开始")
-		this.init(ctx)
-	case *Stopped:
-		fmt.Println("结束")
-		ctx.Bubble(&BeginObj{id: this.id, self: this.sendRef})
+func NewSession(conn remote.SocketProcess) *Session {
+	return &Session{ //会话自身是无法修改自己的
+		id: NextID(),
+		ActorRef: Stage().ActorOf(WithFunc(func(ctx ActorContext) {
+			switch body := ctx.Any().(type) {
+			case []byte:
+				conn.Send(body)
+			case *Started:
+				//on
+			case *Stopped:
+				conn.Close()
+			default:
+				fmt.Printf("miss session handle [class %T] \n", body)
+			}
+		})),
 	}
 }
 
@@ -185,28 +109,54 @@ func init() {
 		return &GateActor{}
 	}))
 	fmt.Println("尺寸:", core.SizeTypeof(gateRef))
+	network.OnHandler(func(conn net.Conn) error {
+		var (
+			session *Session
+			ref     = remote.NewKeepActive(conn, remote.OptionNonPing()) //去掉心跳
+		)
+		ref.OnRegister(process.NewSyncDispatcher(0), DoFunc(func(any interface{}) {
+			switch body := any.(type) {
+			case []byte:
+				gateRef.Request(network.ReadBegin(body), session)
+				//fmt.Println("服务端收到:", network.ReadBegin(body))
+			case error:
+				ref.Send(network.WriteBegin(0x01).Flush())
+			case *Started:
+				//建立会话
+				session = NewSession(ref)
+				gateRef.Request(&BeginObj{Add: true}, session)
+			case *Stopped:
+				//移除会话
+				session.Close()
+				gateRef.Request(&BeginObj{}, session)
+			default:
+				fmt.Printf("miss handle [class %T] \n", any)
+			}
+		}))
+		return ref.Start()
+	}, ":8088")
+	//open
+	network.StartTcpServer(":8088")
 	//闭包
 	func() {
 		var (
-			client remote.SocketProcess
+			client ActorRef
 			addr   = "localhost:8088"
 		)
 		cliRef := Stage().ActorOf(WithFunc(func(ctx ActorContext) {
 			switch b := ctx.Any().(type) {
 			case *Started:
-			case *CloseObj:
+			case bool:
 				client = nil
 			//reset
 			case []byte:
-				client = remote.New(remote.OptionAddr(addr))
-				client.OnRegister(defaultDispatcher, DoFunc(func(data interface{}) {
-					switch body := data.(type) {
+				client = ctx.ActorOf(WithRemoteAddr(addr), WithFunc(func(child ActorContext) {
+					switch body := child.Any().(type) {
 					case []byte:
 						fmt.Println("body", network.ReadBegin(body))
 					}
 				}))
-				client.Start()
-				client.Send(b)
+				client.Tell(b)
 			}
 		}))
 		//客户端(唯一丢包的可能就是socket断线重连)

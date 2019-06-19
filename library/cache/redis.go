@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -12,8 +13,9 @@ var (
 		Wait:            false, //如果超过最大并发，那么不会等待，直接返回错误conn
 		MaxIdle:         10,    //空闲连接数目
 		MaxActive:       100,   //最大连接数目
-		IdleTimeout:     0,     //空闲时间
-		MaxConnLifetime: 0,     //生存时间
+		IdleTimeout:     0,
+		MaxConnLifetime: 0,
+		DialTimeout:     time.Second * 3,
 		Addr:            "192.168.0.100:6379",
 	}
 )
@@ -28,6 +30,7 @@ type Options struct {
 	MaxActive       int
 	IdleTimeout     time.Duration
 	MaxConnLifetime time.Duration
+	DialTimeout     time.Duration
 }
 
 /*
@@ -41,18 +44,24 @@ func (this Options) Copy(opts ...Option) *Options {
 }
 
 /*
-* 你可以自己建立池，通过配置表来填充redis池的配置选项
+* 通过配置表来填充redis池的配置选项
  */
 func (this *Options) Filler(p *redis.Pool) *redis.Pool {
-	addr := this.Addr //To prevent the upper changes lead to pool the bug
-
+	var (
+		addr    = this.Addr
+		timeout = this.DialTimeout
+	)
 	p.Wait = this.Wait
 	p.MaxIdle = this.MaxIdle
 	p.MaxActive = this.MaxActive
 	p.IdleTimeout = this.IdleTimeout
 	p.MaxConnLifetime = this.MaxConnLifetime
-	p.Dial = func() (redis.Conn, error) { return redis.Dial("tcp", addr) }
+	p.Dial = func() (redis.Conn, error) { return redis.Dial("tcp", addr, redis.DialConnectTimeout(timeout)) }
 	return p
+}
+
+func (this *Options) String() string {
+	return fmt.Sprintf("[addr=%s min=%d max=%d]", this.Addr, this.MaxIdle, this.MaxActive)
 }
 
 /*
@@ -63,7 +72,7 @@ func (this *Options) Open() *redis.Pool {
 }
 
 /*
-*拷贝和替换一些配置获得新的redis配置，redis启动依赖配置
+*通过默认配置修改一些选项来获得新配置
  */
 func NewRedis(opts ...Option) *Options {
 	return defaultConfig.Copy(opts...)
@@ -73,5 +82,11 @@ func NewRedis(opts ...Option) *Options {
 func OptionAddr(addr string) Option {
 	return func(p *Options) {
 		p.Addr = addr
+	}
+}
+
+func OptionHost(host string) Option {
+	return func(p *Options) {
+		p.Addr = host + ":6379"
 	}
 }

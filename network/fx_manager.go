@@ -2,32 +2,47 @@ package network
 
 import (
 	"fmt"
+	"net"
 	"sync/atomic"
+	"time"
 
 	"github.com/okpub/rhino/errors"
 )
 
-//如果你不加入到服务里面是无法快速启动监听的
-func NewManager(addr string) Dialer {
-	return &myManager{addr: addr, ch: make(chan Link)}
+//可以看作统一类型的连接管理器
+func NewManager(addr string) Manager {
+	return &myManager{addr: addr, ch: make(chan net.Conn)}
 }
 
 //class manager
 type myManager struct {
 	addr string
 	code int32
-	ch   chan Link
+	ch   chan net.Conn
+}
+
+func (this *myManager) Dial(addr string) error {
+	if atomic.LoadInt32(&this.code) == 1 {
+		return fmt.Errorf("close of dial addr=%s", this.addr)
+	}
+	conn, err := net.DialTimeout("tcp", addr, time.Second*5)
+	if err == nil {
+		if err = this.joinAndConn(conn); err != nil {
+			conn.Close()
+		}
+	}
+	return err
 }
 
 //join
-func (this *myManager) Join(conn Link) (err error) {
+func (this *myManager) joinAndConn(conn net.Conn) (err error) {
 	defer func() { err = errors.Catch(recover()) }()
 	this.ch <- conn
 	return
 }
 
 //Listener
-func (this *myManager) Accept() (Link, error) {
+func (this *myManager) Accept() (net.Conn, error) {
 	if conn, ok := <-this.ch; ok {
 		return conn, nil
 	}
@@ -43,6 +58,6 @@ func (this *myManager) Close() (err error) {
 	return
 }
 
-func (this *myManager) Address() string {
-	return this.addr
-}
+func (this *myManager) Addr() net.Addr  { return this }
+func (this *myManager) Network() string { return "tcp" }
+func (this *myManager) String() string  { return this.addr }

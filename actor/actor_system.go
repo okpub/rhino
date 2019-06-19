@@ -13,10 +13,7 @@ type actorSystem struct {
 	PIDGroup
 }
 
-func (this *actorSystem) System() ActorSystem { return this }
-func (this *actorSystem) Shutdown()           { this.removeSelf(false, Canceled) }
-func (this *actorSystem) Wait()               { /*not used*/ }
-
-func (this *actorSystem) ActorOf(opts *Options) ActorRef {
-	return opts.spawn(this)
-}
+func (this *actorSystem) Wait()                           { /*not used*/ }
+func (this *actorSystem) System() ActorSystem             { return this }
+func (this *actorSystem) Shutdown()                       { this.removeSelf(false, Canceled) }
+func (this *actorSystem) ActorOf(opts ...Option) ActorRef { return NewOptions(opts...).spawn(this) }

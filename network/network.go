@@ -18,13 +18,21 @@ const (
 )
 
 type (
+	ConnSet   map[net.Conn]struct{}
+	ListenSet map[net.Listener]struct{}
+	Handler   func(net.Conn) error
 
-	//net地址
-	NetAddr interface {
-		Network() string //网络类型
-		Addr() string    //客户端dial地址
-		PubAddr() string //服务器lnnr地址
-		//Next() NetAddr   //next网络节点，可以用作集群或者分布式节点链
+	//服务
+	Symbiote interface {
+		Start(string) error
+		Serve(net.Listener, Handler) error
+		Close() error
+	}
+
+	//连接器管理(目前没啥用,actor里面已经实现)
+	Manager interface {
+		net.Listener
+		Dial(string) error
 	}
 )
 
@@ -40,12 +48,4 @@ func DialScan(kind string, addr string) (net.Conn, error) {
 	default:
 		return DialScan(TCP_LINK, addr)
 	}
-}
-
-/*
-*是否为暂时的错误(超时或者其他)
- */
-func CheckNetTemporary(err error) bool {
-	temp, ok := err.(net.Error)
-	return ok && temp.Temporary()
 }

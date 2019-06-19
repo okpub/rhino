@@ -68,6 +68,7 @@ type (
 		Respond(interface{}) error           //回复消息(sender不存在的时候失败)
 		Bubble(interface{}) error            //冒泡(报告上级)
 		Refuse() error                       //关闭当前sender(回绝)
+		Send(ActorRef, interface{}) error    //发送给某个(可以是自身)
 	}
 
 	recvPart interface {
@@ -79,7 +80,7 @@ type (
 	}
 
 	spawnPart interface {
-		ActorOf(*Options) ActorRef
+		ActorOf(...Option) ActorRef
 		Stop(ActorRef)
 	}
 )

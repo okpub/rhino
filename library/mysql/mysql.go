@@ -27,26 +27,13 @@ var (
 	}
 )
 
-//mysql的地址
-type Address struct {
-	Host string
-	Port int
-	User string
-	Pwd  string
-	Name string
+func NewMysql(opts ...Option) *Options {
+	return defaultConfig.Copy(opts...)
 }
-
-func (this *Address) Addr() string {
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8", this.User, this.Pwd, fmt.Sprint(this.Host, ":", this.Port), this.Name)
-}
-
-func (this Address) Copy() *Address {
-	return &this
-}
-
-type Option func(*Options)
 
 //class mysql Config
+type Option func(*Options)
+
 type Options struct {
 	Addr            string
 	MaxIdle         int
@@ -62,13 +49,6 @@ func (this Options) Copy(opts ...Option) *Options {
 	return &this
 }
 
-func (this *Options) Filler(db *sql.DB) *sql.DB {
-	db.SetMaxIdleConns(this.MaxIdle)
-	db.SetMaxOpenConns(this.MaxActive)
-	db.SetConnMaxLifetime(this.MaxConnLifetime)
-	return db
-}
-
 func (this *Options) Open() *sql.DB {
 	db, err := sql.Open("mysql", this.Addr)
 	if err != nil {
@@ -77,9 +57,11 @@ func (this *Options) Open() *sql.DB {
 	return this.Filler(db)
 }
 
-//new
-func NewMysql(opts ...Option) *Options {
-	return defaultConfig.Copy(opts...)
+func (this *Options) Filler(db *sql.DB) *sql.DB {
+	db.SetMaxIdleConns(this.MaxIdle)
+	db.SetMaxOpenConns(this.MaxActive)
+	db.SetConnMaxLifetime(this.MaxConnLifetime)
+	return db
 }
 
 //选项 更改mysql地址

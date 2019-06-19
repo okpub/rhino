@@ -10,8 +10,8 @@ func (this *ByteArray) Wobj(v interface{}) {
 	switch p := v.(type) {
 	case WriteObj:
 		p.Write(this)
-	case IWriter:
-		p.WriteTo(this, 0) //this Will grow
+	//case IWriter:
+	//	p.WriteTo(this, 0) //this Will grow
 	default:
 		this.encode(reflect.ValueOf(v))
 	}
@@ -22,8 +22,8 @@ func (this *ByteArray) Robj(v interface{}) {
 	switch p := v.(type) {
 	case ReadObj:
 		p.Read(this)
-	case IWriter:
-		this.WriteTo(p, 0) //p Will grow
+	//case IWriter:
+	//	this.WriteTo(p, 0) //p Will grow
 	default:
 		this.decode(reflect.ValueOf(v))
 	}
@@ -102,6 +102,9 @@ func (b *ByteArray) decode(fd reflect.Value) {
 		fd.SetBool(b.Rbool())
 	case reflect.String:
 		fd.SetString(b.Rstr())
+
+	case reflect.Int:
+		fd.SetInt(int64(b.Rint32()))
 	case reflect.Int8:
 		fd.SetInt(int64(b.Rint8()))
 	case reflect.Int16:
@@ -110,6 +113,9 @@ func (b *ByteArray) decode(fd reflect.Value) {
 		fd.SetInt(int64(b.Rint32()))
 	case reflect.Int64:
 		fd.SetInt(b.Rint64())
+
+	case reflect.Uint:
+		fd.SetUint(uint64(b.Ruint32()))
 	case reflect.Uint8:
 		fd.SetUint(uint64(b.Ruint8()))
 	case reflect.Uint16:
@@ -118,10 +124,7 @@ func (b *ByteArray) decode(fd reflect.Value) {
 		fd.SetUint(uint64(b.Ruint32()))
 	case reflect.Uint64:
 		fd.SetUint(b.Ruint64())
-	case reflect.Int:
-		fd.SetInt(int64(b.Rint32()))
-	case reflect.Uint:
-		fd.SetUint(uint64(b.Ruint32()))
+
 	default:
 		panic(fmt.Errorf("fail read type %s", fd.Kind().String()))
 	}

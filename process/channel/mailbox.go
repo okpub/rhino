@@ -5,16 +5,16 @@ import (
 	"github.com/okpub/rhino/process"
 )
 
-//class mailbox(假邮箱，关闭后不能重复使用)
+//class mailbox(使用消息通道代替)
 type Mailbox struct {
 	process.UntypeProcess
 	//message
-	buffer     chan interface{} //消息通道
-	pendingNum int              //会存在默认通道
-	blocking   bool             //非阻塞模式(默认阻塞)
+	buffer      chan interface{} //消息通道
+	pendingNum  int              //默认通道
+	nonblocking bool             //模式(默认阻塞)
 }
 
-func (this *Mailbox) filler(opts ...Option) *Mailbox {
+func (this *Mailbox) Filler(opts ...Option) *Mailbox {
 	for _, o := range opts {
 		o(this)
 	}
@@ -22,6 +22,10 @@ func (this *Mailbox) filler(opts ...Option) *Mailbox {
 		this.buffer = make(chan interface{}, this.pendingNum)
 	}
 	return this
+}
+
+func (this Mailbox) Copy(opts ...Option) *Mailbox {
+	return this.Filler(opts...)
 }
 
 //process
@@ -73,14 +77,14 @@ func (this *Mailbox) Post(v interface{}) (err error) {
 
 //private
 func (this *Mailbox) sendMessage(v interface{}) (err error) {
-	if this.blocking {
-		this.buffer <- v
-	} else {
+	if this.nonblocking {
 		select {
 		case this.buffer <- v:
 		default:
 			err = OverfullErr
 		}
+	} else {
+		this.buffer <- v
 	}
 	return
 }
