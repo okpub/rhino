@@ -22,7 +22,7 @@ type ActorProcess interface {
 
 // default values
 var (
-	defaultOptions = Options{
+	DefaultOptions = Options{
 		dispatcher: process.NewDefaultDispatcher(0),
 		spawner: func(parent SpawnerContext, opts *Options) ActorRef {
 			ctx := newActorContext(parent, opts)
@@ -62,10 +62,10 @@ type Options struct {
 
 //基于默认选项配置来做文章(如果你不用默认，那么自己重新定义)
 func NewOptions(opts ...Option) *Options {
-	return defaultOptions.Copy(opts...)
+	return DefaultOptions.Copy(opts...)
 }
 
-func (this *Options) Filler(args ...Option) *Options {
+func (this *Options) Init(args ...Option) *Options {
 	for _, o := range args {
 		o(this)
 	}
@@ -73,7 +73,7 @@ func (this *Options) Filler(args ...Option) *Options {
 }
 
 func (this Options) Copy(args ...Option) *Options {
-	return this.Filler(args...)
+	return this.Init(args...)
 }
 
 func (this *Options) NewActor() Actor {

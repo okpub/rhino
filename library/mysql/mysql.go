@@ -49,19 +49,19 @@ func (this Options) Copy(opts ...Option) *Options {
 	return &this
 }
 
+func (this *Options) Filler(db *sql.DB) *sql.DB {
+	db.SetMaxIdleConns(this.MaxIdle)
+	db.SetMaxOpenConns(this.MaxActive)
+	db.SetConnMaxLifetime(this.MaxConnLifetime)
+	return db
+}
+
 func (this *Options) Open() *sql.DB {
 	db, err := sql.Open("mysql", this.Addr)
 	if err != nil {
 		panic(fmt.Errorf("mysql underlying engine err:" + err.Error()))
 	}
 	return this.Filler(db)
-}
-
-func (this *Options) Filler(db *sql.DB) *sql.DB {
-	db.SetMaxIdleConns(this.MaxIdle)
-	db.SetMaxOpenConns(this.MaxActive)
-	db.SetConnMaxLifetime(this.MaxConnLifetime)
-	return db
 }
 
 //选项 更改mysql地址

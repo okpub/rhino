@@ -30,7 +30,7 @@ type Socket struct {
 }
 
 //private 填充，初始化使用
-func (this *Socket) Filler(opts ...Option) *Socket {
+func (this *Socket) Init(opts ...Option) *Socket {
 	for _, o := range opts {
 		o(this)
 	}
@@ -38,7 +38,7 @@ func (this *Socket) Filler(opts ...Option) *Socket {
 }
 
 func (this Socket) Copy(opts ...Option) *Socket {
-	return this.Filler(opts...)
+	return this.Init(opts...)
 }
 
 //procsess

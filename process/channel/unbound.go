@@ -11,7 +11,7 @@ func MakeBuffer(pendingNum int, args ...Option) MessageQueue {
 	this := &Mailbox{
 		pendingNum: pendingNum, //default blocking
 	}
-	return this.Filler(args...)
+	return this.Init(args...)
 }
 
 //producer

@@ -50,9 +50,3 @@ func OptionNonBlocking() Option { //nonblocking mode
 		p.nonblocking = true
 	}
 }
-
-func OptionFiller(opts ...Option) Option {
-	return func(p *Mailbox) {
-		p.Filler(opts...)
-	}
-}

@@ -12,7 +12,7 @@ import (
  */
 func NewServer(opts ...Option) Symbiote {
 	this := &Server{
-		Options: NewOptions(opts...),
+		options: NewOptions(opts...),
 	}
 	return this
 }
@@ -22,16 +22,16 @@ func NewServer(opts ...Option) Symbiote {
 * 需要统计
  */
 type Server struct {
-	*Options
-	mu  sync.Mutex
-	acs ConnSet
-	lns ListenSet
+	options *Options
+	mu      sync.Mutex
+	acs     ConnSet
+	lns     ListenSet
 }
 
 //快速启动(默认为tcp服务)
 func (this *Server) Start(addr string) (err error) {
 	this.Wrap(func() {
-		this.Serve(Listen(addr), this.Exchange(addr))
+		this.Serve(Listen(addr), this.options.Exchange(addr))
 	})
 	return
 }
@@ -50,7 +50,7 @@ func (this *Server) Serve(ln net.Listener, handle Handler) (err error) {
 			break
 		}
 	}
-	this.OnClose(ln, err)
+	this.options.OnClose(ln, err)
 	return
 }
 

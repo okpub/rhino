@@ -16,7 +16,7 @@ type Producer func() SocketProcess
 //new
 func New(opts ...Option) SocketProcess {
 	this := &Socket{}
-	return this.Filler(opts...)
+	return this.Init(opts...)
 }
 
 func NewAddr(addr string, opts ...Option) SocketProcess {
@@ -24,7 +24,7 @@ func NewAddr(addr string, opts ...Option) SocketProcess {
 	//dial
 	OptionStream(addr)(this)
 	//other
-	return this.Filler(opts...)
+	return this.Init(opts...)
 }
 
 func NewKeepActive(obj interface{}, opts ...Option) SocketProcess {
@@ -36,7 +36,7 @@ func NewKeepActive(obj interface{}, opts ...Option) SocketProcess {
 	//Note that type: net.Conn
 	OptionStream(obj)(this)
 	//other options
-	return this.Filler(opts...)
+	return this.Init(opts...)
 }
 
 //Producer(默认无超时)

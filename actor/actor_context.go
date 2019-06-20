@@ -3,7 +3,7 @@ package actor
 //static
 func newActorContext(parent SpawnerContext, opts *Options) actorContext {
 	ctx := actorContext{
-		Options:  opts,
+		options:  opts,
 		PIDGroup: NewTree(parent),
 		UntypeContext: UntypeContext{
 			parent: parent.Self(),
@@ -19,7 +19,7 @@ type actorContext struct {
 	//childs
 	PIDGroup
 	//New init
-	*Options
+	options *Options
 	//The real context
 	extras *actorContextExtras
 }
@@ -93,7 +93,7 @@ func (this *actorContext) sendMessage(sender ActorRef, data interface{}) (err er
 		err = SendNilErr
 	} else {
 		//sender the chain
-		if sendChain := this.Options.senderMiddlewareChain; sendChain != nil {
+		if sendChain := this.options.senderMiddlewareChain; sendChain != nil {
 			err = sendChain(this.ensureExtras().Context(), sender, WrapEnvelope(data))
 		} else {
 			err = sender.Tell(data)
@@ -104,7 +104,7 @@ func (this *actorContext) sendMessage(sender ActorRef, data interface{}) (err er
 
 func (this *actorContext) recvMessage(data interface{}) {
 	//reader the chain
-	if readChain := this.Options.receiverMiddlewareChain; readChain != nil {
+	if readChain := this.options.receiverMiddlewareChain; readChain != nil {
 		readChain(this.ensureExtras().Context(), WrapEnvelope(data))
 	} else {
 		this.Receive(WrapEnvelope(data))
@@ -112,12 +112,12 @@ func (this *actorContext) recvMessage(data interface{}) {
 }
 
 func (this *actorContext) incarnateActor() {
-	this.actor = this.Options.NewActor()
+	this.actor = this.options.NewActor()
 }
 
 func (this *actorContext) ensureExtras() *actorContextExtras {
 	if this.extras == nil {
-		this.extras = newActorContextExtras(this.Options.ContextWrapper(this))
+		this.extras = newActorContextExtras(this.options.ContextWrapper(this))
 	}
 	return this.extras
 }

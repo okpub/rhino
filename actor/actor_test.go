@@ -8,8 +8,6 @@ import (
 
 	"github.com/okpub/rhino/core"
 	"github.com/okpub/rhino/network"
-	"github.com/okpub/rhino/process"
-	"github.com/okpub/rhino/process/remote"
 )
 
 type BeginObj struct {
@@ -86,17 +84,17 @@ type Session struct {
 	ActorRef
 }
 
-func NewSession(conn remote.SocketProcess) *Session {
-	return &Session{ //会话自身是无法修改自己的
+func NewSession(parent ActorContext) *Session {
+	return &Session{
 		id: NextID(),
-		ActorRef: Stage().ActorOf(WithFunc(func(ctx ActorContext) {
-			switch body := ctx.Any().(type) {
+		ActorRef: parent.ActorOf(WithFunc(func(child ActorContext) {
+			switch body := child.Any().(type) {
 			case []byte:
-				conn.Send(body)
+				child.Bubble(body)
 			case *Started:
 				//on
 			case *Stopped:
-				conn.Close()
+				parent.Stop(parent.Self())
 			default:
 				fmt.Printf("miss session handle [class %T] \n", body)
 			}
@@ -109,34 +107,34 @@ func init() {
 		return &GateActor{}
 	}))
 	fmt.Println("尺寸:", core.SizeTypeof(gateRef))
-	network.OnHandler(func(conn net.Conn) error {
+	//open
+	network.OnHandler(func(conn net.Conn) (err error) {
 		var (
 			session *Session
-			ref     = remote.NewKeepActive(conn, remote.OptionNonPing()) //去掉心跳
 		)
-		ref.OnRegister(process.NewSyncDispatcher(0), DoFunc(func(any interface{}) {
-			switch body := any.(type) {
+		Stage().ActorOf(WithRemoteStream(func(ctx ActorContext) {
+			switch body := ctx.Any().(type) {
 			case []byte:
 				gateRef.Request(network.ReadBegin(body), session)
 				//fmt.Println("服务端收到:", network.ReadBegin(body))
 			case error:
-				ref.Send(network.WriteBegin(0x01).Flush())
+				session.Tell(network.WriteBegin(0x01).Flush())
 			case *Started:
 				//建立会话
-				session = NewSession(ref)
+				session = NewSession(ctx)
 				gateRef.Request(&BeginObj{Add: true}, session)
 			case *Stopped:
 				//移除会话
 				session.Close()
 				gateRef.Request(&BeginObj{}, session)
 			default:
-				fmt.Printf("miss handle [class %T] \n", any)
+				fmt.Printf("miss handle [class %T] \n", body)
 			}
-		}))
-		return ref.Start()
+		}, conn))
+		return
 	}, ":8088")
-	//open
 	network.StartTcpServer(":8088")
+	time.Sleep(time.Millisecond)
 	//闭包
 	func() {
 		var (
@@ -150,20 +148,27 @@ func init() {
 				client = nil
 			//reset
 			case []byte:
-				client = ctx.ActorOf(WithRemoteAddr(func(child ActorContext) {
-					switch body := child.Any().(type) {
-					case []byte:
-						fmt.Println("body", network.ReadBegin(body))
-					}
-				}, addr))
+				if client == nil {
+					client = ctx.ActorOf(WithRemoteAddr(func(child ActorContext) {
+						switch body := child.Any().(type) {
+						case []byte:
+							fmt.Println("客户端：", network.ReadBegin(body))
+						case Failure:
+							fmt.Println(body.Err())
+						default:
+							fmt.Printf("miss client [class %T] \n", body)
+						}
+					}, addr))
+				}
 				client.Tell(b)
+			default:
+				fmt.Printf("miss broker [class %T] \n", b)
 			}
 		}))
 		//客户端(唯一丢包的可能就是socket断线重连)
 		cliRef.Tell(network.WriteBegin(0x2).Flush())
 	}()
 
-	time.Sleep(time.Second * 1)
 	//gateRef.Tell(&TellObj{id: 1, body: network.WriteBegin(0x03).Flush()})
 	time.Sleep(time.Second * 2)
 	Stage().Shutdown()

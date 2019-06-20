@@ -9,7 +9,7 @@ import (
 
 //default values
 var (
-	defaultConfig = Options{
+	DefaultConfig = Options{
 		Wait:            false, //如果超过最大并发，那么不会等待，直接返回错误conn
 		MaxIdle:         10,    //空闲连接数目
 		MaxActive:       100,   //最大连接数目
@@ -75,7 +75,7 @@ func (this *Options) Open() *redis.Pool {
 *通过默认配置修改一些选项来获得新配置
  */
 func NewRedis(opts ...Option) *Options {
-	return defaultConfig.Copy(opts...)
+	return DefaultConfig.Copy(opts...)
 }
 
 //选项(使用新配置)

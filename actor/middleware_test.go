@@ -11,7 +11,7 @@ func decodeMiddleware(next ReceiverFunc) ReceiverFunc {
 	}
 }
 
-func init() {
+func uninit() {
 	c1 := makeReceiverMiddlewareChain(func(ctx ReceiverContext, data MessageEnvelope) {
 		fmt.Println("链路收尾")
 	}, decodeMiddleware)

@@ -8,15 +8,16 @@ import (
 )
 
 var (
-	defaultOptions = Options{
+	DefaultOptions = Options{
 		OnClose: func(obj interface{}, err error) {
 			fmt.Println("miss close: [ class", reflect.TypeOf(obj).String(), "] err =", err)
 		},
 	}
-	defaultHandler = func(conn net.Conn) error {
-		return fmt.Errorf("miss handle [addr %s]", conn.RemoteAddr().String())
-	}
 )
+
+func DefaultHandler(conn net.Conn) error {
+	return fmt.Errorf("miss handle [addr %s]", conn.RemoteAddr().String())
+}
 
 type Option func(*Options)
 
@@ -26,19 +27,19 @@ type Options struct {
 }
 
 func NewOptions(opts ...Option) *Options {
-	return defaultOptions.Copy(opts...)
+	return DefaultOptions.Copy(opts...)
 }
 
 func (this *Options) Exchange(addr string) (handle Handler) {
 	if handle = this.Handler; handle == nil {
 		if handle = GetHandler(addr); handle == nil {
-			handle = defaultHandler
+			handle = DefaultHandler
 		}
 	}
 	return
 }
 
-func (this *Options) Filler(opts ...Option) *Options {
+func (this *Options) Init(opts ...Option) *Options {
 	for _, o := range opts {
 		o(this)
 	}
@@ -46,7 +47,7 @@ func (this *Options) Filler(opts ...Option) *Options {
 }
 
 func (this Options) Copy(opts ...Option) *Options {
-	return this.Filler(opts...)
+	return this.Init(opts...)
 }
 
 //options

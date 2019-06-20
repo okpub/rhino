@@ -14,7 +14,7 @@ type Mailbox struct {
 	nonblocking bool             //模式(默认阻塞)
 }
 
-func (this *Mailbox) Filler(opts ...Option) *Mailbox {
+func (this *Mailbox) Init(opts ...Option) *Mailbox {
 	for _, o := range opts {
 		o(this)
 	}
@@ -25,7 +25,7 @@ func (this *Mailbox) Filler(opts ...Option) *Mailbox {
 }
 
 func (this Mailbox) Copy(opts ...Option) *Mailbox {
-	return this.Filler(opts...)
+	return this.Init(opts...)
 }
 
 //process
