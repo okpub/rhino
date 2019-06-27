@@ -28,6 +28,7 @@ network.stream使用len+body的读取方法，一般处理read/write在单线程
 
 # 编写一个简单的服务器
 ```go
+func main(){
   network.StartTcpServer(":8088", network.OptionHandler(func(conn net.Conn) (err error) {
 		Stage().ActorOf(WithRemoteStream(func(ctx ActorContext) {
 			switch body := ctx.Any().(type) {
@@ -61,4 +62,5 @@ network.stream使用len+body的读取方法，一般处理read/write在单线程
 
 	psend := network.WriteBegin(0x101, "who's your daddy!")
 	cli.Tell(psend.Flush())
+}
 ```
