@@ -2,20 +2,27 @@
 go网络基础框架
 # 使用领域
 rhino励志打造一个完善的游戏服务器框架，其核心内容在于
+
 · actor 主要服务游戏逻辑部分,actor内部是单线程，例如：日志服务，db服务，游戏服务，网关等等
+
 · network 用于tcp，http，udp的通信，封装读写包
+
 · 其他部分是封装了一些重复劳动的工具
 
 # acotr模型
 1 核心api在actor中，其主要actor处理逻辑部分在于process
+
 2 process包括邮件(channel)和远程(retome)他们都提供对actor的支持
+
 3 所以一切皆actor
 
 
 # network
-net.Conn有个问题需要说下，就是SetReadDeadline/SetWriteDeadline这两个是读写超时的绝对时间，当你设置后，那么读写会超时，那么就需要处理read和write返回值n，由于net.Conn中write其实是一个write full,所以一般情况不需要设置SetWriteDeadline 一旦你设置了，那么write full就毫无意义(注意有些版本不是write full (go version>1.8))
+net.Conn有个问题需要说下，就是SetReadDeadline/SetWriteDeadline这两个是读写超时的绝对时间
 
-network.stream封装了len+body的读取方法，一般处理read/write在单线程比较可靠，借助actor模型 由上级actor对其write，来更好的解决和应对分布式中环路堵塞和短暂丢包的处理
+设置读写会超时，那么就需要处理read和write返回值n，查看源码发现net.Conn中write其实是一个write full，所以一般情况不需要设置SetWriteDeadline。
+
+network.stream使用len+body的读取方法，一般处理read/write在单线程比较安全可靠，借助actor模型 由上级actor对其write，来更好的解决和应对分布式中环路堵塞和短暂丢包的处理
 
 
 
