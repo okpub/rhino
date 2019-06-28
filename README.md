@@ -66,3 +66,4 @@ func main(){
 	cli.Tell(psend.Flush())
 }
 ```
+![75205017.jpg](image/75205017.jpg)
