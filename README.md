@@ -1,4 +1,4 @@
-# rhino  (QQ技术群：75205017)
+# rhino
 go网络基础框架
 # 使用领域
 rhino励志打造一个可靠的游戏服务器框架，其核心内容在于
@@ -66,4 +66,5 @@ func main(){
 	cli.Tell(psend.Flush())
 }
 ```
+(QQ技术群：75205017)
 ![75205017.jpg](image/75205017.jpg)
