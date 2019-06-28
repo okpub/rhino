@@ -66,6 +66,6 @@ func main(){
 	cli.Tell(psend.Flush())
 }
 ```
-(QQ技术群：75205017)
+##(QQ技术群：75205017)
 
 ![75205017.jpg](image/75205017.jpg)
