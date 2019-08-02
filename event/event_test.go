@@ -5,13 +5,24 @@ import (
 	"time"
 )
 
+type intMsg int
+
+func (n intMsg) Type() int            { return int(n) }
+func (n intMsg) Message() interface{} { return n }
+
 func init() {
 	event := make(OberSet)
 
-	event.Subscribe(func(data Publication) {
-		fmt.Println(data.Message())
+	event.On(func(data Event) {
+		fmt.Println("消息", data.Message())
 	}, 1)
-	event.Publish(1)
-	fmt.Println("123")
+	event.On(func(data Event) {
+		fmt.Println("消息", data.Message())
+	}, 1)
+	sub1 := event.On(func(data Event) {
+		fmt.Println("消息", data.Message())
+	}, 1, 2, 4, 5)
+	sub1.Unsubscribe()
+	event.DispatchEvent(intMsg(4))
 	time.Sleep(time.Second)
 }

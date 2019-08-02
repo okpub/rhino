@@ -16,7 +16,7 @@ var (
 		IdleTimeout:     0,
 		MaxConnLifetime: 0,
 		DialTimeout:     time.Second * 3,
-		Addr:            "192.168.0.100:6379",
+		Addr:            "localhost:6379",
 	}
 )
 
