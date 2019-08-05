@@ -156,7 +156,7 @@ func (this *ByteArray) Wstr(str string) {
 //b会增长
 func (this *ByteArray) WriteTo(b io.Writer, n int) int {
 	if n < 1 {
-		n, _ = b.Write(this.buf[this.p:])
+		n, _ = b.Write(this.payload())
 	} else {
 		n, _ = b.Write(this.buf[this.p : this.p+n])
 	}

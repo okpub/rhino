@@ -1,17 +1,19 @@
 package bytes
 
 func NewBuffer(b []byte) Buffer {
-	return Buffer{buf: b}
+	return Buffer{buf: b, n: len(b)}
 }
 
 type Buffer struct {
 	p   int
+	n   int
 	buf []byte
 }
 
 func (this *Buffer) SetBuffer(b []byte) {
 	this.p = 0
 	this.buf = b
+	this.n = len(b)
 }
 
 func (this *Buffer) Pos() int {
@@ -31,16 +33,26 @@ func (this *Buffer) SeekEnd() int {
 	return this.p
 }
 
+func (this *Buffer) Reset() {
+	this.p = 0
+	this.n = 0
+}
+
 func (this *Buffer) Next(n int) {
 	this.p += n
 }
 
 func (this *Buffer) Len() int {
+	return this.n
+}
+
+func (this *Buffer) CapLen() int {
 	return len(this.buf)
 }
 
 func (this *Buffer) LenSet(n int) {
-	if m := len(this.buf); n > m {
+	this.n = n
+	if m := this.CapLen(); n > m {
 		this.grow(n - m)
 	} else {
 		this.buf = this.buf[:n]
@@ -59,43 +71,44 @@ func (this *Buffer) BitSet(n int, b byte) {
 }
 
 func (this *Buffer) Available() int {
-	return len(this.buf) - this.p
+	return this.Len() - this.p
 }
 
 func (this *Buffer) Write(b []byte) (n int, err error) {
 	this.grow(len(b))
-	n = copy(this.buf[this.p:], b)
+	n = copy(this.payload(), b)
 	this.Next(n)
 	return
 }
 
 func (this *Buffer) Read(b []byte) (n int, err error) {
 	if n = len(b); n > 0 {
-		n = copy(b, this.buf[this.p:])
+		n = copy(b, this.payload())
 		this.Next(n)
 	}
 	return
 }
 
 func (this *Buffer) Bytes() []byte {
-	return this.buf
+	return this.buf[:this.n]
 }
 
 func (this *Buffer) String() string {
-	return string(this.buf)
+	return string(this.Bytes())
 }
 
 //private
 func (this *Buffer) grow(size int) int {
 	if n := size - this.Available(); n > 0 {
-		newBuf := makeBytes(len(this.buf) + n)
+		newBuf := makeBytes(this.CapLen() + n)
 		copy(newBuf, this.buf)
 		this.buf = newBuf
+		this.n = len(newBuf)
 		return n
 	}
 	return 0
 }
 
 func (this *Buffer) payload() []byte {
-	return this.buf[this.p:]
+	return this.buf[this.p:this.n]
 }

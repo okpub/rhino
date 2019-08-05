@@ -24,15 +24,16 @@ type TestObj struct {
 }
 
 func init() {
-	a := 10
+	a := &TestObj{}
+	a.Name = "我是谁"
 
 	b := New()
 	b.Wobj(a)
 
-	var c int
+	c := &TestObj{}
 	b.SeekBegin()
 	b.Robj(&c)
-	fmt.Println("读到:", c)
+	fmt.Println("读到:", c, b.Len())
 
 	gbytes.NewBuffer([]byte{1})
 }
@@ -60,6 +61,5 @@ func cBenchmarkCopy2(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		m.SeekBegin()
 		//t2 := &TestObj{}
-
 	}
 }

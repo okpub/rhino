@@ -54,8 +54,10 @@ type IBuffer interface {
 	SeekBegin()
 	SeekEnd() int
 	//len
+	Reset()
 	Len() int
 	LenSet(int)
+	CapLen() int
 	Available() int
 	//bytes
 	Bytes() []byte
