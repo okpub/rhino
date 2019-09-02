@@ -11,7 +11,7 @@ rhino励志打造一个可靠的游戏服务器框架，其核心内容在于
 
 · rpc模块，目前还没有，以后会加入，考虑一个高可用的方案
 
-# acotr模型
+# actor模型
 1 核心api在actor中，其主要actor处理逻辑部分在于process
 
 2 process包括邮件(channel)和远程(retome)他们都提供对actor的支持
